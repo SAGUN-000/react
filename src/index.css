@@ -1,0 +1,99 @@
+@import 'tailwindcss';
+
+/* ===== CUSTOM LAYER UTILITIES ===== */
+
+@layer utilities {
+  .animate-fade-in-delay-1 {
+    animation: fade-in 0.6s ease-in-out 0.1s both;
+  }
+
+  .animate-fade-in-delay-2 {
+    animation: fade-in 0.6s ease-in-out 0.2s both;
+  }
+
+  .animate-fade-in-delay-3 {
+    animation: fade-in 0.6s ease-in-out 0.3s both;
+  }
+}
+
+/* ===== KEYFRAME ANIMATIONS ===== */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ===== SMOOTH TRANSITIONS ===== */
+
+* {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Buttons */
+button {
+  @apply transition-all duration-200;
+}
+
+button:hover:not(:disabled) {
+  @apply transform scale-105;
+}
+
+button:active:not(:disabled) {
+  @apply transform scale-95;
+}
+
+/* Links */
+a {
+  @apply transition-colors duration-200;
+}
+
+/* Cards */
+.card {
+  @apply transition-all duration-300 ease-out;
+}
+
+.card:hover {
+  @apply transform -translate-y-2;
+}
+
+/* ===== SMOOTH SCROLL BEHAVIOR ===== */
+
+html {
+  @apply scroll-smooth;
+}
+
+/* ===== LOADING STATES ===== */
+
+.loading {
+  @apply animate-pulse;
+}
+
+/* ===== FORM ELEMENTS ===== */
+
+input, textarea, select {
+  @apply transition-all duration-200;
+}
+
+input:focus, textarea:focus, select:focus {
+  @apply ring-2 ring-blue-500;
+}
+
+.navbar-search-input:focus,
+.navbar-search-input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* ===== HOVER EFFECTS ===== */
+
+.hover-lift:hover {
+  @apply -translate-y-1 shadow-lg;
+}
+
+.hover-scale:hover {
+  @apply scale-110;
+}
