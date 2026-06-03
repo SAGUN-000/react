@@ -24,6 +24,7 @@ function App() {
   const [userDetails,setuserDetails]=useState({})
   const[orderItems,setOrderItems]=useState([])
   const[orderSubtotal,setOrderSubtotal]=useState(0)
+  const[users,setUsers]=useState([])
    
 
   // ❌ NO navigation here
@@ -176,12 +177,35 @@ function App() {
       console.error("Checkout function error:", err);
       throw err;
     }
-   
-
 
   }
 
-  const router = createBrowserRouter([
+  // fetch user
+  const fetchUser = async () => {
+    const token = localStorage.getItem('jwt_token');
+    if (!token) throw new Error('AUTH_REQUIRED');
+
+    try {
+      const res = await axios.get('http://localhost:8080/admin/view_users', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setUsers(res.data);
+      console.log(res.data);
+      return res.data;
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        localStorage.removeItem('jwt_token');
+        throw new Error('UNAUTHORIZED');
+      }
+
+      console.error(err);
+      throw err;
+    }
+  };
+
+
+  const router = createBrowserRouter([}
     {
       path: "/",
       element: (
