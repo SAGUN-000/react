@@ -4,7 +4,7 @@ import Navbar from "../header/navbar";
 import Footer from "../footer/footer";
 
 function Layout({ cartItems, onCartClick,deleteCartItem ,keyword, setKeyword, 
-  products, subtotal, fetchCartItems,fetchUserDetails,checkout,orderItems,orderSubtotal}) {
+  products, subtotal, fetchCartItems,fetchUserDetails, checkout,orderItems,orderSubtotal}) {
   
 
   return (

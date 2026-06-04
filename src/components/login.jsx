@@ -2,6 +2,20 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import axios from "axios"
 
+const getJwtClaims = (token) => {
+    try {
+        const payload = token.split('.')[1];
+        if (!payload) return {};
+        let base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4 !== 0) base64 += '=';
+        const decoded = atob(base64);
+        return JSON.parse(decoded);
+    } catch (error) {
+        console.error('JWT parse error:', error);
+        return {};
+    }
+};
+
 function Login(){
 
          
@@ -16,21 +30,36 @@ function Login(){
 
         try
         {
-            let res=await axios.post("/login",{email,password})
+            let res = await axios.post("/login", { email, password })
             
             // Extract JWT token from response
-            const token = res.data.token || res.data.jwt || res.data.access_token || res.data;
+            const token = res.data.token || res.data.jwt || res.data.access_token || res.data.data?.token || res.data;
             
             // Store token in localStorage for authentication
             if (token) {
                 localStorage.setItem('jwt_token', token);
                 console.log('JWT Token extracted:', token);
             }
-            
-            setmessage("login successful. Redirecting to home..."); 
-             setTimeout(()=>{
-                navigate("/")
-             },1500)
+
+            const claims = token ? getJwtClaims(token) : {};
+            console.log('JWT claims:', claims);
+            const roleClaim = claims.role || claims.roles || claims.Role || claims.Roles ||
+                claims['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+                claims['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role'];
+            const candidateRoles = Array.isArray(roleClaim) ? roleClaim : [roleClaim].filter(Boolean);
+            const normalizedRoles = candidateRoles.map((role) => String(role).toLowerCase());
+            const isAdmin = normalizedRoles.includes('admin') ||
+                normalizedRoles.includes('administrator') ||
+                claims.isAdmin === true ||
+                claims.admin === true ||
+                String(claims.isAdmin).toLowerCase() === 'true';
+            const destination = isAdmin ? '/admin' : '/';
+
+            console.log('roleClaim:', roleClaim, 'normalizedRoles:', normalizedRoles, 'isAdmin:', isAdmin);
+            setmessage(`login successful. Redirecting to ${destination === '/admin' ? 'dashboard' : 'home'}...`);
+            setTimeout(() => {
+                navigate(destination, { replace: true });
+            }, 1200);
         }
         catch(err){
             setmessage("Login Failed")

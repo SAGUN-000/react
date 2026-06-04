@@ -1,10 +1,39 @@
- import { NavLink, useOutletContext } from "react-router-dom";
-import Products from "../components/product";
+import { NavLink, useNavigate, useOutletContext } from "react-router-dom";
+ import { useEffect } from "react";
+ import Products from "../components/product";
+ 
+ const getJwtClaims = (token) => {
+     try {
+         const payload = token.split('.')[1];
+         if (!payload) return {};
+         let base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+         while (base64.length % 4 !== 0) base64 += '=';
+         return JSON.parse(atob(base64));
+     } catch {
+         return {};
+     }
+ };
+ 
+ function Home() {
+     const navigate = useNavigate();
+     const { products, onCartClick, cartItems } = useOutletContext();
 
-function Home() {
-    const { products, onCartClick, cartItems } = useOutletContext();
-
-    return (
+     useEffect(() => {
+         const token = localStorage.getItem('jwt_token');
+         if (!token) return;
+         const claims = getJwtClaims(token);
+         const roleClaim = claims.role || claims.roles || claims.Role || claims.Roles ||
+             claims['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+             claims['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role'];
+         const roles = Array.isArray(roleClaim) ? roleClaim : [roleClaim].filter(Boolean);
+         const normalized = roles.map((role) => String(role).toLowerCase());
+         const isAdmin = normalized.includes('admin') || normalized.includes('administrator') || claims.isAdmin === true || claims.admin === true;
+         if (isAdmin) {
+             navigate('/admin', { replace: true });
+         }
+     }, [navigate]);
+ 
+     return (
         <>
             <div className="flex gap-8 p-6 bg-gradient-to-b from-blue-50 to-white">
 
@@ -61,7 +90,7 @@ function Home() {
             <div className="bg-gray-50 w-full">
                 <div className="flex-1 ml-5 mr-5 bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-6">
                     <h2 className="text-2xl font-bold text-gray-900 mb-6 pl-8">Featured Products</h2>
-                    <div className="flex p-4 flex-wrap gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 p-4">
                         {products.map((product, index) =>
                             <Products
                                 key={`${product.id}-${index}`}

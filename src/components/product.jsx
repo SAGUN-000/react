@@ -22,7 +22,7 @@ function Products({id,name,price,url,addToCart}){
 };
   
     return(
-         <div className="w-48 m-4 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 bg-white">
+         <div className="w-full max-w-[220px] rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 bg-white">
 
          {/*image container */}
          <NavLink
@@ -30,7 +30,7 @@ function Products({id,name,price,url,addToCart}){
            state={{ product: { id, name, price, url } }}
            className="block"
          >
-           <div className="h-60 overflow-hidden">
+           <div className="h-56 overflow-hidden">
              <img src={url} alt={name} className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"/>
            </div>
          </NavLink>
