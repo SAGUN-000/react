@@ -25,6 +25,8 @@ function App() {
   const [userDetails,setuserDetails]=useState({})
   const[orderItems,setOrderItems]=useState([])
   const[orderSubtotal,setOrderSubtotal]=useState(0)
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
    
 
   // ❌ NO navigation here
@@ -79,19 +81,21 @@ function App() {
   //fetch products
 
   useEffect(() => {
+    setCurrentPage(0);
+  }, [keyword]);
+
+  useEffect(() => {
     const fetchProducts = async () => {
-     
-
       try {
+        const pageNum = Math.max(1, currentPage + 1);
         const url = keyword
-          ? `http://localhost:8080/products/${keyword}`
-          : `http://localhost:8080/products`;
-
+          ? `http://localhost:8080/products/${keyword}?pageNum=${pageNum}`
+          : `http://localhost:8080/products?pageNum=${pageNum}`;
 
         const res = await axios.get(url);
-         
         
-        setProducts(res.data);
+        setProducts(res.data.content || res.data);
+        setTotalPages(res.data.totalPages || 0);
       } catch (err) {
         console.error(err);
         setProducts([]);
@@ -99,7 +103,7 @@ function App() {
     };
 
     fetchProducts();
-  }, [keyword]);
+  }, [keyword, currentPage]);
 
    
   //delete cartItems
@@ -197,6 +201,9 @@ function App() {
           checkout={checkout}
           orderItems={orderItems}
           orderSubtotal={orderSubtotal}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          totalPages={totalPages}
 
            
         />

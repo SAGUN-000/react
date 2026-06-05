@@ -16,7 +16,7 @@ import { NavLink, useNavigate, useOutletContext } from "react-router-dom";
  
  function Home() {
      const navigate = useNavigate();
-     const { products, onCartClick, cartItems } = useOutletContext();
+     const { products, onCartClick, cartItems, currentPage, setCurrentPage, totalPages } = useOutletContext();
 
      useEffect(() => {
          const token = localStorage.getItem('jwt_token');
@@ -102,6 +102,29 @@ import { NavLink, useNavigate, useOutletContext } from "react-router-dom";
                                 cartitems={cartItems}
                             />
                         )}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    <div className="flex justify-center items-center gap-4 mt-8 pb-6">
+                        <button
+                            onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                            disabled={currentPage === 0}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                        >
+                            ← Previous
+                        </button>
+                        
+                        <span className="text-gray-700 font-medium">
+                            Page {currentPage + 1} of {totalPages}
+                        </span>
+                        
+                        <button
+                            onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                            disabled={currentPage >= totalPages - 1 || totalPages === 0}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Next →
+                        </button>
                     </div>
                 </div>
             </div>

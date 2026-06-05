@@ -8,23 +8,40 @@ function Categories(){
 
     const {slug}=useParams()
     const [products, setProducts]=useState([])
+    const [currentPage, setCurrentPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     const {onCartClick, cartItems } = useOutletContext();
+
+    useEffect(() => {
+      setCurrentPage(0);
+    }, [slug]);
 
     useEffect(() => {
   const fetchProducts = async () => {
     try {
-      const res = await fetch(`/products/category/${slug}`);
+      const pageNum = Math.max(1, currentPage + 1);
+      const res = await fetch(`/products/category/${slug}?pageNum=${pageNum}`);
       if (!res.ok) throw new Error(`Server responded with ${res.status}`);
       const data = await res.json();
-      setProducts(data);
-      console.log(data[0].url)
+      // Ensure we always store an array in state. Handle paginated
+      // shapes like { content: [...] } and common alternatives.
+      const productsArray = Array.isArray(data)
+        ? data
+        : (data && Array.isArray(data.content))
+        ? data.content
+        : (data && Array.isArray(data.products))
+        ? data.products
+        : [];
+      setProducts(productsArray);
+      setTotalPages(data.totalPages || 0);
+      if (productsArray.length) console.log(productsArray[0].url);
     } catch (err) {
       console.error(err);
     }
   };
 
   fetchProducts();
-}, [slug]); // add slug here if it can change
+}, [slug, currentPage]);
 
     return(
         <>
@@ -43,6 +60,29 @@ function Categories(){
                                 cartitems={cartItems}
                             />
                         )}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    <div className="flex justify-center items-center gap-4 mt-8 pb-6">
+                        <button
+                            onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                            disabled={currentPage === 0}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                        >
+                            ← Previous
+                        </button>
+                        
+                        <span className="text-gray-700 font-medium">
+                            Page {currentPage + 1} of {totalPages}
+                        </span>
+                        
+                        <button
+                            onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                            disabled={currentPage >= totalPages - 1 || totalPages === 0}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Next →
+                        </button>
                     </div>
                 </div>
             </div>
