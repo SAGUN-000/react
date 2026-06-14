@@ -4,7 +4,7 @@ import Navbar from "../header/navbar";
 import Footer from "../footer/footer";
 
 function Layout({ cartItems, onCartClick,deleteCartItem ,keyword, setKeyword, 
-  products, subtotal, fetchCartItems,fetchUserDetails, checkout,orderItems,orderSubtotal, currentPage, setCurrentPage, totalPages}) {
+  products, subtotal, fetchCartItems,fetchUserDetails, prepareCheckout, placeOrder, fetchOrders, orderItems,orderSubtotal, currentPage, setCurrentPage, totalPages}) {
   
 
   return (
@@ -15,7 +15,7 @@ function Layout({ cartItems, onCartClick,deleteCartItem ,keyword, setKeyword,
     
        
       <Outlet context={{ products, cartItems, deleteCartItem,onCartClick, subtotal,
-        fetchCartItems,fetchUserDetails, checkout, orderItems, orderSubtotal, currentPage, setCurrentPage, totalPages}} />
+        fetchCartItems,fetchUserDetails, prepareCheckout, placeOrder, fetchOrders, orderItems, orderSubtotal, currentPage, setCurrentPage, totalPages}} />
 
       <Footer/>
     </>

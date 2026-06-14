@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate, useOutletContext } from "react-router-dom"
 import Products from "./product"
-import { useOutletContext } from "react-router-dom"
 
 
 function Categories(){
 
     const {slug}=useParams()
+    const navigate = useNavigate();
     const [products, setProducts]=useState([])
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
@@ -47,7 +47,17 @@ function Categories(){
         <>
          <div className="bg-gray-50 w-full">
                 <div className="flex-1 ml-5 mr-5 bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6 pl-8">{slug}</h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <button
+                            onClick={() => navigate('/')}
+                            aria-label="Go back to homepage"
+                            className="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-colors"
+                        >
+                            <span className="mr-2">←</span>
+                            <span className="font-medium">Back</span>
+                        </button>
+                        <h2 className="text-2xl font-bold text-gray-900 pl-8">{slug}</h2>
+                    </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 p-4">
                         {products.map((product, index) =>
                             <Products

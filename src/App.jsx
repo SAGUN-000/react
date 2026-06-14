@@ -15,6 +15,7 @@ import ProtectedRoute from './protected_routes/protectedRoute';
 import axios from 'axios';
 import Profile from './components/profile';
 import Checkout from './components/checkout';
+import ViewOrder from './components/viewOrder';
 import AdminDashboard from './protected_routes/admin_dashboard';
 
 function App() {
@@ -89,7 +90,7 @@ function App() {
       try {
         const pageNum = Math.max(1, currentPage + 1);
         const url = keyword
-          ? `http://localhost:8080/products/${keyword}?pageNum=${pageNum}`
+          ? `http://localhost:8080/products?keyword=${encodeURIComponent(keyword)}&pageNum=${pageNum}`
           : `http://localhost:8080/products?pageNum=${pageNum}`;
 
         const res = await axios.get(url);
@@ -152,37 +153,51 @@ function App() {
     }
   }, []);
 
-  const checkout=async(items)=>{
-    console.log("Checkout function called with items:", items);
+  const prepareCheckout = (items) => {
+    setOrderItems(items);
+    const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    setOrderSubtotal(subtotal);
+  };
 
-    try{
-       const token=localStorage.getItem("jwt_token")
-       console.log("Token found:", !!token);
-      if(!token) throw new Error("No token found");
+  const fetchOrders = useCallback(async () => {
+    const token = localStorage.getItem("jwt_token");
+    if (!token) throw new Error("No token found");
 
-      console.log("Making API call to checkout...");
-      let res=await axios.post("http://localhost:8080/order/checkout",items,{
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      console.log("API response:", res);
+    const res = await axios.get("http://localhost:8080/order/view_order", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      if (res.status === 401) {
-        localStorage.removeItem('jwt_token');
-        throw new Error("UNAUTHORIZED");
+    if (res.status === 401) {
+      localStorage.removeItem('jwt_token');
+      throw new Error("UNAUTHORIZED");
     }
 
-      setOrderItems(res.items || []);
-      setOrderSubtotal(res.totalPrice || 0)
-      console.log("Order items set:", res.items);
-      console.log("Order subtotal set:", res.totalPrice);
+    return res.data;
+  }, []);
 
-    }
-    catch(err){
-      console.error("Checkout function error:", err);
-      throw err;
+  const placeOrder = async (items) => {
+    const token = localStorage.getItem("jwt_token");
+    if (!token) throw new Error("No token found");
+
+    const payload = items.map(item => ({
+      productId: item.id,
+      quantity: item.quantity,
+    }));
+
+    const res = await axios.post("http://localhost:8080/order/checkout", payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.status === 401) {
+      localStorage.removeItem('jwt_token');
+      throw new Error("UNAUTHORIZED");
     }
 
-  }
+    const data = res.data;
+    setOrderItems(data.items || []);
+    setOrderSubtotal(data.totalPrice || 0);
+    return data;
+  };
 
   const router = createBrowserRouter([
     {
@@ -198,7 +213,9 @@ function App() {
           subtotal={subtotal}
           fetchCartItems={fetchCartItems}
           fetchUserDetails={fetchUserDetails}
-          checkout={checkout}
+          prepareCheckout={prepareCheckout}
+          placeOrder={placeOrder}
+          fetchOrders={fetchOrders}
           orderItems={orderItems}
           orderSubtotal={orderSubtotal}
           currentPage={currentPage}
@@ -220,7 +237,8 @@ function App() {
         { path: "categories/:slug", element: <Categories /> },
         { path: "product_details/:id", element: <ProductDetails /> },
         {path:"/profile",element:<Profile/>},
-        {path:"checkout",element:<ProtectedRoute><Checkout/></ProtectedRoute>}
+        {path:"checkout",element:<ProtectedRoute><Checkout/></ProtectedRoute>},
+        {path:"orders",element:<ProtectedRoute><ViewOrder/></ProtectedRoute>}
       ]
     },
     {

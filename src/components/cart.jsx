@@ -3,10 +3,8 @@
 
 function Cart() {
   // Get cart state from Layout
-  const { cartItems, subtotal, fetchCartItems, checkout, deleteCartItem } = useOutletContext();
+  const { cartItems, subtotal, fetchCartItems, prepareCheckout, deleteCartItem } = useOutletContext();
   const navigate = useNavigate();
-
-  console.log("Cart component - checkout function:", typeof checkout, checkout);
 
   // State for selected items
   const [selectedItems, setSelectedItems] = useState(new Set());
@@ -53,36 +51,17 @@ function Cart() {
   // Safely compute total
   const total = subtotal;
 
- async function handleBuyNow() {
-   console.log("handleBuyNow called");
-   console.log("selectedItems:", selectedItems);
-   console.log("checkout function:", typeof checkout);
-
+ function handleBuyNow() {
    if (selectedItems.size === 0) {
      alert("Please select at least one item to checkout");
      return;
    }
 
-   // Prepare selected items for checkout
-   const itemsToCheckout = cartItems
-     .filter(item => selectedItems.has(item.id))
-     .map(item => ({
-       productId: item.id,
-       quantity: item.quantity
-     }));
-
-   console.log("itemsToCheckout:", itemsToCheckout);
-
-   try {
-     console.log("Calling checkout function...");
-     await checkout(itemsToCheckout);
-     console.log("Checkout function completed successfully");
-     navigate('/checkout');
-   } catch (error) {
-     console.error("Checkout failed:", error);
-     alert("Checkout failed. Please try again.");
-   }
+   const itemsToCheckout = cartItems.filter(item => selectedItems.has(item.id));
+   prepareCheckout(itemsToCheckout);
+   navigate('/checkout');
  }
+ 
 
   const handleDeleteItem = async (itemId) => {
     try {

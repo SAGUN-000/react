@@ -2,14 +2,14 @@ import { useEffect, useState } from "react"
 import { useNavigate, useOutletContext } from "react-router-dom"
 
 export default function Checkout(){
-     const {checkout, orderItems, orderSubtotal, userDetails} = useOutletContext()
+     const { placeOrder, orderItems, orderSubtotal, fetchUserDetails, deleteCartItem, fetchCartItems } = useOutletContext()
      const navigate = useNavigate()
 
      // Form state
      const [shippingInfo, setShippingInfo] = useState({
-       firstName: userDetails?.firstName || '',
-       lastName: userDetails?.lastName || '',
-       email: userDetails?.email || '',
+       firstName: '',
+       lastName: '',
+       email: '',
        phone: '',
        address: '',
        city: '',
@@ -25,6 +25,26 @@ export default function Checkout(){
      const [sameAsShipping, setSameAsShipping] = useState(true)
      const [paymentMethod, setPaymentMethod] = useState('card')
      const [isProcessing, setIsProcessing] = useState(false)
+
+     useEffect(() => {
+       if (!orderItems || orderItems.length === 0) {
+         navigate('/cart')
+         return
+       }
+     }, [orderItems, navigate])
+
+     useEffect(() => {
+       fetchUserDetails?.().then((data) => {
+         if (data) {
+           setShippingInfo(prev => ({
+             ...prev,
+             firstName: data.firstName || prev.firstName,
+             lastName: data.lastName || prev.lastName,
+             email: data.email || prev.email,
+           }))
+         }
+       }).catch(() => {})
+     }, [fetchUserDetails])
 
      useEffect(() => {
        if (sameAsShipping) {
@@ -53,20 +73,26 @@ export default function Checkout(){
        setIsProcessing(true)
 
        try {
-         // Here you would typically send the complete order data to your backend
-         // including shipping, billing, and payment information
-         // For now, we'll simulate a successful order placement
+         await placeOrder(orderItems)
+         const productIds = orderItems.map(item => item.id)
+         await deleteCartItem(productIds)
+         await fetchCartItems(navigate)
          alert("Order placed successfully!")
          navigate('/')
        } catch (error) {
          console.error("Checkout failed:", error)
-         alert("Checkout failed. Please try again.")
+         if (error.message === "UNAUTHORIZED") {
+           alert("Login expired. Please log in again.")
+           navigate('/login')
+         } else {
+           alert(error.response?.data?.message || "Checkout failed. Please try again.")
+         }
        } finally {
          setIsProcessing(false)
        }
      }
 
-     const total = orderSubtotal || 0
+     const total = Number(orderSubtotal) || 0
 
      return(
        <div className="min-h-screen bg-gray-50 py-12 px-6">
@@ -372,11 +398,13 @@ export default function Checkout(){
                    {orderItems && orderItems.length > 0 ? (
                      orderItems.map((item, index) => (
                        <div key={index} className="flex items-center space-x-4">
-                         <img src={item.url} alt={item.name} className="w-16 h-16 bg-gray-100 rounded-lg object-cover" />
+                         {item.url && (
+                           <img src={item.url} alt={item.name || item.product_name} className="w-16 h-16 bg-gray-100 rounded-lg object-cover object-center block" />
+                         )}
                          <div className="flex-1">
-                           <h3 className="text-sm font-medium text-gray-900">{item.name}</h3>
+                           <h3 className="text-sm font-medium text-gray-900">{item.name || item.product_name}</h3>
                            <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
-                           <p className="text-sm font-medium text-blue-600">${(item.price * item.quantity).toFixed(2)}</p>
+                           <p className="text-sm font-medium text-blue-600">${(Number(item.price) * item.quantity).toFixed(2)}</p>
                          </div>
                        </div>
                      ))
