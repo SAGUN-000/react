@@ -17,6 +17,7 @@ import Profile from './components/profile';
 import Checkout from './components/checkout';
 import ViewOrder from './components/viewOrder';
 import AdminDashboard from './protected_routes/admin_dashboard';
+import OAuth2Success from './components/OAuth2Success';
 
 function App() {
   const [cartItems, setCartItems] = useState([]);
@@ -167,6 +168,8 @@ function App() {
       headers: { Authorization: `Bearer ${token}` },
     });
 
+    console.log("ORDERS FROM BACKEND:", res.data);
+
     if (res.status === 401) {
       localStorage.removeItem('jwt_token');
       throw new Error("UNAUTHORIZED");
@@ -174,30 +177,65 @@ function App() {
 
     return res.data;
   }, []);
+ 
+ const placeOrder = async (orderData) => {
+  const token = localStorage.getItem("jwt_token");
 
-  const placeOrder = async (items) => {
-    const token = localStorage.getItem("jwt_token");
-    if (!token) throw new Error("No token found");
+  if (!token) {
+    throw new Error("No token found");
+  }
 
-    const payload = items.map(item => ({
+  if (
+    orderData?.latitude == null ||
+    orderData?.longitude == null
+  ) {
+    throw new Error("Please select your delivery location on the map");
+  }
+
+  const payload = {
+    orderItems: orderData.orderItems.map((item) => ({
       productId: item.id,
       quantity: item.quantity,
-    }));
+    })),
 
-    const res = await axios.post("http://localhost:8080/order/checkout", payload, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    address: orderData.address,
+    city: orderData.city,
+    province: orderData.province,
+    postalCode: orderData.postalCode,
+    country: orderData.country,
 
-    if (res.status === 401) {
-      localStorage.removeItem('jwt_token');
-      throw new Error("UNAUTHORIZED");
-    }
+    latitude: orderData.latitude,
+    longitude: orderData.longitude,
+  };
+
+  console.log(payload)
+
+  try {
+    const res = await axios.post(
+      "http://localhost:8080/order/checkout",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
     const data = res.data;
+
     setOrderItems(data.items || []);
     setOrderSubtotal(data.totalPrice || 0);
+
     return data;
-  };
+  } catch (error) {
+    console.error(
+      "Place order failed:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
 
   const router = createBrowserRouter([
     {
@@ -227,6 +265,10 @@ function App() {
       ),
       children: [
         { index: true, element: <Home /> },
+        {
+            path: "oauth2/success",
+            element: <OAuth2Success />
+        },
         { path: "special-offers", element: <Special /> },
         { path: "contact-us", element: <Contact /> },
         { path: "login", element: <Login /> },

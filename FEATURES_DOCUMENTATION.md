@@ -395,5 +395,7 @@ This e-commerce application provides:
 - ✅ Product search and browsing
 - ✅ User profile management
 - ✅ Clean and intuitive UI
+- ✅ real time chat with seller
+- ✅ gamify features
 
 All features work together to provide a complete e-commerce experience!

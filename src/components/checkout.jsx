@@ -1,30 +1,49 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useOutletContext } from "react-router-dom"
+ import LocationPicker from "./locationPicker.jsx";
+
+const NEPAL_PROVINCES = [
+  "Koshi Province",
+  "Madhesh Province",
+  "Bagmati Province",
+  "Gandaki Province",
+  "Lumbini Province",
+  "Karnali Province",
+  "Sudurpashchim Province",
+]
+
+const defaultAddress = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  address: '',
+  city: 'Kathmandu',
+  province: 'Bagmati Province',
+  postalCode: '',
+  country: 'Nepal',
+}
 
 export default function Checkout(){
      const { placeOrder, orderItems, orderSubtotal, fetchUserDetails, deleteCartItem, fetchCartItems } = useOutletContext()
      const navigate = useNavigate()
 
      // Form state
-     const [shippingInfo, setShippingInfo] = useState({
-       firstName: '',
-       lastName: '',
-       email: '',
-       phone: '',
-       address: '',
-       city: '',
-       state: '',
-       zipCode: '',
-       country: 'United States'
-     })
+      const [shippingInfo, setShippingInfo] = useState({
+      address: "",
+      city: "",
+      province: "",
+      postalCode: "",
+      country: "Nepal"
+    });
 
-     const [billingInfo, setBillingInfo] = useState({
-       ...shippingInfo
-     })
+     const [billingInfo, setBillingInfo] = useState({ ...defaultAddress })
 
      const [sameAsShipping, setSameAsShipping] = useState(true)
      const [paymentMethod, setPaymentMethod] = useState('card')
      const [isProcessing, setIsProcessing] = useState(false)
+     const [location, setLocation] = useState(null);
+   
 
      useEffect(() => {
        if (!orderItems || orderItems.length === 0) {
@@ -72,8 +91,22 @@ export default function Checkout(){
        e.preventDefault()
        setIsProcessing(true)
 
+       if (!location) {
+        alert("Please select your delivery location on the map.");
+        setIsProcessing(false);
+        return;
+      }
+
        try {
-         await placeOrder(orderItems)
+           await placeOrder({
+           orderItems,
+           ...shippingInfo,
+          
+          latitude: location.latitude,
+          longitude: location.longitude,
+           
+      
+    });
          const productIds = orderItems.map(item => item.id)
          await deleteCartItem(productIds)
          await fetchCartItems(navigate)
@@ -115,7 +148,7 @@ export default function Checkout(){
                        onChange={handleShippingChange}
                        required
                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="John"
+                       placeholder="Ram"
                      />
                    </div>
                    <div>
@@ -127,7 +160,7 @@ export default function Checkout(){
                        onChange={handleShippingChange}
                        required
                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="Doe"
+                       placeholder="Sharma"
                      />
                    </div>
                    <div>
@@ -139,7 +172,7 @@ export default function Checkout(){
                        onChange={handleShippingChange}
                        required
                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="john@example.com"
+                       placeholder="ram@example.com"
                      />
                    </div>
                    <div>
@@ -151,9 +184,10 @@ export default function Checkout(){
                        onChange={handleShippingChange}
                        required
                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="(555) 123-4567"
+                       placeholder="9801234567"
                      />
                    </div>
+
                    <div className="md:col-span-2">
                      <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
                      <input
@@ -163,9 +197,10 @@ export default function Checkout(){
                        onChange={handleShippingChange}
                        required
                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="123 Main Street"
+                       placeholder="Thamel, Ward 29"
                      />
                    </div>
+
                    <div>
                      <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
                      <input
@@ -175,31 +210,43 @@ export default function Checkout(){
                        onChange={handleShippingChange}
                        required
                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="New York"
+                       placeholder="Kathmandu"
                      />
                    </div>
+
+                   {/* Map */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Pin Delivery Location
+                    </label>
+
+                    <LocationPicker onLocationSelect={setLocation} />
+                  </div>
+
                    <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
-                     <input
-                       type="text"
-                       name="state"
-                       value={shippingInfo.state}
+                     <label className="block text-sm font-medium text-gray-700 mb-2">Province</label>
+                     <select
+                       name="province"
+                       value={shippingInfo.province}
                        onChange={handleShippingChange}
                        required
                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="NY"
-                     />
+                     >
+                       {NEPAL_PROVINCES.map((province) => (
+                         <option key={province} value={province}>{province}</option>
+                       ))}
+                     </select>
                    </div>
                    <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-2">ZIP Code</label>
+                     <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
                      <input
                        type="text"
-                       name="zipCode"
-                       value={shippingInfo.zipCode}
+                       name="postalCode"
+                       value={shippingInfo.postalCode}
                        onChange={handleShippingChange}
                        required
                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="10001"
+                       placeholder="44600"
                      />
                    </div>
                    <div>
@@ -210,9 +257,9 @@ export default function Checkout(){
                        onChange={handleShippingChange}
                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                      >
-                       <option value="United States">United States</option>
-                       <option value="Canada">Canada</option>
-                       <option value="United Kingdom">United Kingdom</option>
+                       <option value="Nepal">Nepal</option>
+                       <option value="India">India</option>
+                       <option value="China">China</option>
                      </select>
                    </div>
                  </div>
@@ -244,7 +291,7 @@ export default function Checkout(){
                          onChange={handleBillingChange}
                          required
                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                         placeholder="John"
+                         placeholder="Ram"
                        />
                      </div>
                      <div>
@@ -256,7 +303,7 @@ export default function Checkout(){
                          onChange={handleBillingChange}
                          required
                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                         placeholder="Doe"
+                         placeholder="Sharma"
                        />
                      </div>
                      <div className="md:col-span-2">
@@ -268,7 +315,7 @@ export default function Checkout(){
                          onChange={handleBillingChange}
                          required
                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                         placeholder="123 Main Street"
+                         placeholder="Thamel, Ward 29"
                        />
                      </div>
                      <div>
@@ -280,31 +327,33 @@ export default function Checkout(){
                          onChange={handleBillingChange}
                          required
                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                         placeholder="New York"
+                         placeholder="Kathmandu"
                        />
                      </div>
                      <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
-                       <input
-                         type="text"
-                         name="state"
-                         value={billingInfo.state}
+                       <label className="block text-sm font-medium text-gray-700 mb-2">Province</label>
+                       <select
+                         name="province"
+                         value={billingInfo.province}
                          onChange={handleBillingChange}
                          required
                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                         placeholder="NY"
-                       />
+                       >
+                         {NEPAL_PROVINCES.map((province) => (
+                           <option key={province} value={province}>{province}</option>
+                         ))}
+                       </select>
                      </div>
                      <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-2">ZIP Code</label>
+                       <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
                        <input
                          type="text"
-                         name="zipCode"
-                         value={billingInfo.zipCode}
+                         name="postalCode"
+                         value={billingInfo.postalCode}
                          onChange={handleBillingChange}
                          required
                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                         placeholder="10001"
+                         placeholder="44600"
                        />
                      </div>
                      <div>
@@ -315,9 +364,9 @@ export default function Checkout(){
                          onChange={handleBillingChange}
                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                        >
-                         <option value="United States">United States</option>
-                         <option value="Canada">Canada</option>
-                         <option value="United Kingdom">United Kingdom</option>
+                         <option value="Nepal">Nepal</option>
+                         <option value="India">India</option>
+                         <option value="China">China</option>
                        </select>
                      </div>
                    </div>
