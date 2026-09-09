@@ -42,5 +42,23 @@ const getUsers=async()=>{
 
 }
 
-export { getUserPurchase,getUsers };
+const getAllOrders=async()=>{
+
+      // Get JWT from localStorage
+    const token = localStorage.getItem("jwt_token");
+
+    // If there is no token, stop the request
+    if (!token) {
+        throw new Error("User is not logged in");
+    }
+    const res = await axios.get("http://localhost:8080/admin/orderDetails", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+    return res.data
+
+
+}
+
+export { getUserPurchase,getUsers,getAllOrders};
  

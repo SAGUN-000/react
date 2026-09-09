@@ -1,2 +1,3 @@
 export * from "./adminStore";
-export { default as useAdminStore } from "./adminStore";
+export { default as adminStore } from "./adminStore";
+

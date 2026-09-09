@@ -1,8 +1,14 @@
- import { create } from "zustand";
+ 
+import { create } from "zustand";
+
 import {
     getUserPurchase,
-    getUsers
+    getUsers,
+    getAllOrders,
+
+    
 } from "../API/AdminApi.js";
+
 
 const useAdminStore = create((set) => ({
 
@@ -12,9 +18,11 @@ const useAdminStore = create((set) => ({
 
     userPurchases: [],
     users: [],
+    orders: [],
 
     loadingPurchases: false,
     loadingUsers: false,
+    loadingOrders: false,
 
     error: null,
 
@@ -41,6 +49,8 @@ const useAdminStore = create((set) => ({
 
         } catch (error) {
 
+            console.error("FETCH USER PURCHASES ERROR:", error);
+
             set({
                 error: error.message,
                 loadingPurchases: false
@@ -50,39 +60,79 @@ const useAdminStore = create((set) => ({
     },
 
 
+
+
+
     // =========================
     // FETCH USERS
     // =========================
 
-     fetchUsers: async () => {
-
-    set({
-        loadingUsers: true,
-        error: null
-    });
-
-    try {
-
-        const data = await getUsers();
-
-        console.log("API DATA:", data);
-        console.log("IS ARRAY:", Array.isArray(data));
+    fetchUsers: async () => {
 
         set({
-            users: data,
-            loadingUsers: false
+            loadingUsers: true,
+            error: null
         });
 
-    } catch (error) {
+        try {
 
-        console.error("FETCH USERS ERROR:", error);
+            const data = await getUsers();
+
+            console.log("USERS API DATA:", data);
+            console.log("IS ARRAY:", Array.isArray(data));
+
+            set({
+                users: data,
+                loadingUsers: false
+            });
+
+        } catch (error) {
+
+            console.error("FETCH USERS ERROR:", error);
+
+            set({
+                error: error.message,
+                loadingUsers: false
+            });
+
+        }
+    },
+
+
+    // =========================
+    // FETCH ORDERS
+    // =========================
+
+    fetchOrders: async () => {
 
         set({
-            error: error.message,
-            loadingUsers: false
+            loadingOrders: true,
+            error: null
         });
-    }
-},
+
+        try {
+
+            const data = await getAllOrders();
+
+            console.log("ORDERS API DATA:", data);
+            console.log("IS ARRAY:", Array.isArray(data));
+
+            set({
+                orders: data,
+                loadingOrders: false
+            });
+
+        } catch (error) {
+
+            console.error("FETCH ORDERS ERROR:", error);
+
+            set({
+                error: error.message,
+                loadingOrders: false
+            });
+
+        }
+    },
 
 
     // =========================
@@ -90,9 +140,11 @@ const useAdminStore = create((set) => ({
     // =========================
 
     setUsers: (users) => {
+
         set({
             users: users
         });
+
     },
 
 
@@ -101,9 +153,24 @@ const useAdminStore = create((set) => ({
     // =========================
 
     setUserPurchases: (purchases) => {
+
         set({
             userPurchases: purchases
         });
+
+    },
+
+
+    // =========================
+    // SET ORDERS
+    // =========================
+
+    setOrders: (orders) => {
+
+        set({
+            orders: orders
+        });
+
     },
 
 
@@ -112,9 +179,11 @@ const useAdminStore = create((set) => ({
     // =========================
 
     clearError: () => {
+
         set({
             error: null
         });
+
     },
 
 
@@ -123,15 +192,26 @@ const useAdminStore = create((set) => ({
     // =========================
 
     reset: () => {
+
         set({
             userPurchases: [],
             users: [],
+            orders: [],
+
             loadingPurchases: false,
             loadingUsers: false,
+            loadingOrders: false,
+
             error: null
         });
+
     }
 
 }));
 
+
 export default useAdminStore;
+ 
+
+ 
+ 

@@ -1,6 +1,7 @@
  import { useEffect, useState } from "react";
 import { Link, useNavigate, useOutletContext } from "react-router-dom";
 import axios from "axios";
+import * as messageApi from "../API/MessageApi";
 
 const statusStyles = {
   PENDING: "bg-amber-100 text-amber-800",
@@ -185,6 +186,16 @@ function ViewOrder() {
       prev === orderId ? null : orderId
     );
   };
+ 
+  const handleChatWithSeller = async (sellerId) => {
+  try {
+    const chatId = await messageApi.getChatId(sellerId);
+
+    navigate(`/chat/${chatId}`);
+  } catch (err) {
+    console.error("Failed to create chat:", err);
+  }
+};
 
   if (loading) {
     return (
@@ -429,6 +440,58 @@ function ViewOrder() {
                         <span>Order Total</span>
                         <span>{formatPrice(order.totalPrice)}</span>
                       </div>
+
+                      {/* Chat with Seller */}
+                    <div className="mt-5 pt-4 border-t border-gray-200">
+                      <button
+                        type="button"
+                        onClick={() => handleChatWithSeller(order.items[0].sellerId)}
+                        className="group w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 rounded-xl transition-all duration-200"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth="1.8"
+                              stroke="currentColor"
+                              className="w-5 h-5"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M8.625 9.75h6.75m-6.75 3h4.5m4.5 5.25a9 9 0 1 0-15.75-6.12c0 1.35.3 2.63.84 3.77L3 21l5.35-1.72a9 9 0 0 0 9.12-1.28Z"
+                              />
+                            </svg>
+                          </div>
+
+                          <div className="text-left">
+                            <p className="text-sm font-semibold text-slate-800">
+                              Chat with Seller
+                            </p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              Have a question about your order?
+                            </p>
+                          </div>
+                        </div>
+
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth="2"
+                          stroke="currentColor"
+                          className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="m9 5 7 7-7 7"
+                          />
+                        </svg>
+                      </button>
+                    </div>
 
                     </div>
                   )}

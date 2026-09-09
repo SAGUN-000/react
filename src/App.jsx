@@ -17,7 +17,9 @@ import Profile from './components/profile';
 import Checkout from './components/checkout';
 import ViewOrder from './components/viewOrder';
 import AdminDashboard from './protected_routes/admin_dashboard';
+import OrdersPage from './protected_routes/OrdersPage';
 import OAuth2Success from './components/OAuth2Success';
+import ChatPage from './pages/ChatPage';
 
 function App() {
   const [cartItems, setCartItems] = useState([]);
@@ -279,6 +281,7 @@ function App() {
         { path: "categories/:slug", element: <Categories /> },
         { path: "product_details/:id", element: <ProductDetails /> },
         {path:"/profile",element:<Profile/>},
+        {path:"/chat/:chatId",element:<ChatPage/>},
         {path:"checkout",element:<ProtectedRoute><Checkout/></ProtectedRoute>},
         {path:"orders",element:<ProtectedRoute><ViewOrder/></ProtectedRoute>}
       ]
@@ -286,6 +289,14 @@ function App() {
     {
       path: "/admin",
       element: <ProtectedRoute><AdminDashboard /></ProtectedRoute>
+    },
+    {
+      path: "/admin/orders",
+      element: <ProtectedRoute><OrdersPage /></ProtectedRoute>
+    },
+    {
+      path: "/admin/order",
+      element: <ProtectedRoute><OrdersPage /></ProtectedRoute>
     }
   ]);
 
