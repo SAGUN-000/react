@@ -15,6 +15,8 @@ function ProductDetails() {
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
+
+    console.log("use effect ran products: ",product)
     if (product || !id) return;
 
     const fetchProduct = async () => {
@@ -23,8 +25,11 @@ function ProductDetails() {
 
       try {
         const response = await axios.get(`http://localhost:8080/products/${id}`);
+        console.log(response.data)
+        
         if (response?.data) {
           setProduct(response.data);
+          
         } else {
           throw new Error("No product data returned");
         }

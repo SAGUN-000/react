@@ -20,6 +20,7 @@ import AdminDashboard from './protected_routes/admin_dashboard';
 import OrdersPage from './protected_routes/OrdersPage';
 import OAuth2Success from './components/OAuth2Success';
 import ChatPage from './pages/ChatPage';
+import UpdatePasswordPage from './pages/updatepasswordPage';
 
 function App() {
   const [cartItems, setCartItems] = useState([]);
@@ -281,6 +282,8 @@ function App() {
         { path: "categories/:slug", element: <Categories /> },
         { path: "product_details/:id", element: <ProductDetails /> },
         {path:"/profile",element:<Profile/>},
+        {path:"/update-password",element:<ProtectedRoute><UpdatePasswordPage/></ProtectedRoute>},
+        {path:"/updatepassword",element:<ProtectedRoute><UpdatePasswordPage/></ProtectedRoute>},
         {path:"/chat/:chatId",element:<ChatPage/>},
         {path:"checkout",element:<ProtectedRoute><Checkout/></ProtectedRoute>},
         {path:"orders",element:<ProtectedRoute><ViewOrder/></ProtectedRoute>}
