@@ -25,7 +25,7 @@ const getMessageHistory=async(chatId)=>{
         throw new Error("User is not logged in");
     }
 
-    const res=await axios.get(`http://localhost:8080/chat/${chatId}`,{
+    const res=await axios.get(`http://localhost:8080/chat/${chatId}/messages`,{
          headers: { Authorization: `Bearer ${token}` }
     })
 

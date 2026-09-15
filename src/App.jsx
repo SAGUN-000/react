@@ -21,6 +21,7 @@ import OrdersPage from './protected_routes/OrdersPage';
 import OAuth2Success from './components/OAuth2Success';
 import ChatPage from './pages/ChatPage';
 import UpdatePasswordPage from './pages/updatepasswordPage';
+import Messages from './protected_routes/UserMessages';
 
 function App() {
   const [cartItems, setCartItems] = useState([]);
@@ -300,6 +301,14 @@ function App() {
     {
       path: "/admin/order",
       element: <ProtectedRoute><OrdersPage /></ProtectedRoute>
+    },
+    {
+      path: "/admin/users/messages",
+      element:<ProtectedRoute><Messages></Messages></ProtectedRoute>
+    },
+    {
+      path:"/admin/messages/:userId",
+      element:<ProtectedRoute><ChatPage></ChatPage></ProtectedRoute>
     }
   ]);
 

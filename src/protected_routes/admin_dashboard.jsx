@@ -35,7 +35,7 @@ function StatCard({ title, value, delta, icon, colorClass }) {
     );
 }
 
-function Sidebar({ current = "Dashboard", onChat }) {
+function Sidebar({ current = "Dashboard",  }) {
     const navigate = useNavigate();
     const items = [
         {
@@ -108,7 +108,7 @@ function Sidebar({ current = "Dashboard", onChat }) {
         // =========================
         {
             name: "Chat",
-            path: null,
+            path: "/admin/users/messages",
             icon: (
                 <svg
                     className="w-5 h-5"
@@ -145,11 +145,9 @@ function Sidebar({ current = "Dashboard", onChat }) {
                                 <li
                                     key={it.name}
                                     onClick={() => {
-                                        if (it.name === "Chat") {
-                                            onChat();
-                                        } else if (it.path) {
+                                         if (it.path) {
                                             navigate(it.path);
-                                        }
+                                        }  
                                     }}
                                     className={`flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer text-sm font-medium transition-all ${
                                         isActive
@@ -191,14 +189,7 @@ export default function Dashboard() {
     // CHAT HANDLER
     // =========================
 
-    const handleChatWithCustomer = async () => {
-        try {
-            const chatId = await messageApi.createChat();
-            navigate(`/chat/${chatId}`);
-        } catch (err) {
-            console.error("Failed to create chat:", err);
-        }
-    };
+     
 
 
     // =========================
@@ -389,7 +380,7 @@ export default function Dashboard() {
 
                 <div className="flex gap-6">
 
-                    <Sidebar onChat={handleChatWithCustomer} />
+                    <Sidebar  />
 
 
                     <main className="flex-1">

@@ -60,5 +60,42 @@ const getAllOrders=async()=>{
 
 }
 
-export { getUserPurchase,getUsers,getAllOrders};
+const updateOrderStatus=async(orderId,status)=>{
+
+     // Get JWT from localStorage
+    const token = localStorage.getItem("jwt_token");
+
+    if (!token) {
+        throw new Error("User is not logged in");
+    }
+
+    const res=await axios.patch(`http://localhost:8080/admin/${orderId}/status`,{
+        status
+    },{headers: { Authorization: `Bearer ${token}` }})
+
+    return res.data;
+
+}
+
+  const getAllUsersWithChats = async () => {
+
+    const token = localStorage.getItem("jwt_token");
+
+    if (!token) {
+        throw new Error("User is not logged in");
+    }
+
+    const res = await axios.get(
+        "http://localhost:8080/admin/user_chats",
+        {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        }
+    );
+
+    return res.data;
+};
+
+export { getUserPurchase,getUsers,getAllOrders,updateOrderStatus,getAllUsersWithChats};
  

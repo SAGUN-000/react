@@ -1,464 +1,711 @@
- import { useEffect, useRef, useState } from "react";
-import { useParams, Link, useLocation } from "react-router-dom";
+ 
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import useMessageStore from "../store/MessageStore";
+import useMessageStore from "../store/MessageStore.js";
+
 import {
-  connect,
-  sendMessage,
-  subscribeToMessages,
-} from "../socket/socketClient";
+    sendMessage,
+    connect,
+    disconnect,
+    subscribeToMessages
+} from "../socket/socketClient.js";
 
-const getCurrentUserId = () => {
-  const token = localStorage.getItem("jwt_token");
 
-  if (!token) return null;
+const ChatPage = () => {
 
-  try {
-    const payload = token.split(".")[1];
+    const navigate = useNavigate();
+    const location = useLocation();
 
-    if (!payload) return null;
+    const {
+        chatId: chatIdParam,
+        userId: userIdParam
+    } = useParams();
 
-    let base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const state = location.state;
 
-    while (base64.length % 4 !== 0) {
-      base64 += "=";
-    }
+    /*
+     * ==========================================
+     * ADMIN / CUSTOMER CHAT
+     * ==========================================
+     *
+     * Admin:
+     * /admin/messages/:userId
+     *
+     * Customer:
+     * /chat/:chatId
+     */
 
-    const claims = JSON.parse(atob(base64));
+    const isAdminChat = Boolean(userIdParam);
 
-    const userId = Number(claims.userId);
+    /*
+     * Admin gets chatId from navigation state.
+     *
+     * Customer gets chatId directly from URL.
+     */
 
-    return Number.isFinite(userId) ? userId : null;
-  } catch (error) {
-    console.error("Failed to parse JWT:", error);
-    return null;
-  }
-};
+    const chatId = isAdminChat
+        ? Number(state?.chatId)
+        : Number(chatIdParam);
 
-function ChatPage() {
-  const { chatId: chatIdParam } = useParams();
-  const { state } = useLocation();
+    /*
+     * Admin:
+     * receiver = customer
+     *
+     * Customer:
+     * receiver = seller/support
+     */
 
-  const chatId = Number(chatIdParam);
-  const sellerId = Number(state?.sellerId);
+    const receiverId = isAdminChat
+        ? Number(userIdParam)
+        : Number(state?.sellerId);
 
-  const [inputText, setInputText] = useState("");
-  const [socketReady, setSocketReady] = useState(false);
-  const [sendError, setSendError] = useState(null);
+    /*
+     * Name displayed in header.
+     */
 
-  const messagesEndRef = useRef(null);
-  const subscriptionRef = useRef(null);
+    const otherUserName = isAdminChat
+        ? state?.userName || "Customer"
+        : "BuyZen Support";
 
-  const currentUserId = getCurrentUserId();
 
-  const {
-    messages,
-    loading,
-    error,
-    getMessages,
-    addMessage,
-    clearMessages,
-  } = useMessageStore();
+    /*
+     * ==========================================
+     * ZUSTAND
+     * ==========================================
+     */
 
-  /*
-   * Load chat history
-   */
-  useEffect(() => {
-    if (!Number.isFinite(chatId)) return;
+    const {
+        messages,
+        loading,
+        error: storeError,
+        getMessages,
+        addMessage,
+        clearMessages
+    } = useMessageStore();
 
-    clearMessages();
-    getMessages(chatId);
-  }, [chatId, getMessages, clearMessages]);
 
-  /*
-   * WebSocket connection + subscription
-   */
-  useEffect(() => {
-    if (!Number.isFinite(chatId)) return;
+    /*
+     * ==========================================
+     * LOCAL STATE
+     * ==========================================
+     */
 
-    let subscription = null;
-    let mounted = true;
+    const [content, setContent] = useState("");
+    const [error, setError] = useState(null);
 
-    try {
-      connect();
+    const messagesEndRef = useRef(null);
 
-      const trySubscribe = () => {
-        if (!mounted || subscription) return;
 
-        try {
-          const sub = subscribeToMessages((receivedMessage) => {
-            if (!receivedMessage) return;
+    /*
+     * ==========================================
+     * CURRENT USER ID
+     * ==========================================
+     *
+     * Sender ID is NOT sent by the client.
+     *
+     * The backend gets the authenticated
+     * WebSocket user and determines senderId.
+     */
 
-            if (
-              Number(receivedMessage.chatId) === Number(chatId)
-            ) {
-              addMessage(receivedMessage);
-            }
-          });
+    const getCurrentUserId = () => {
 
-          if (sub) {
-            subscription = sub;
-            subscriptionRef.current = sub;
-            setSocketReady(true);
-          } else if (mounted) {
-            setTimeout(trySubscribe, 300);
-          }
-        } catch {
-          if (mounted) {
-            setTimeout(trySubscribe, 300);
-          }
+        const token = localStorage.getItem("jwt_token");
+
+        if (!token) {
+            return null;
         }
-      };
 
-      trySubscribe();
-    } catch (error) {
-      console.error("WebSocket connection failed:", error);
-      setSocketReady(false);
-    }
-
-    return () => {
-      mounted = false;
-
-      setSocketReady(false);
-
-      if (subscriptionRef.current) {
         try {
-          subscriptionRef.current.unsubscribe();
+
+            const payload = JSON.parse(
+                atob(token.split(".")[1])
+            );
+
+            return Number(payload.userId);
+
         } catch (error) {
-          console.error("Failed to unsubscribe:", error);
+
+            console.error(
+                "Failed to parse JWT:",
+                error
+            );
+
+            return null;
+        }
+    };
+
+    const currentUserId = getCurrentUserId();
+
+
+    /*
+     * ==========================================
+     * AUTO SCROLL
+     * ==========================================
+     */
+
+    useEffect(() => {
+
+        messagesEndRef.current?.scrollIntoView({
+            behavior: "smooth"
+        });
+
+    }, [messages]);
+
+
+    /*
+     * ==========================================
+     * LOAD CHAT + CONNECT WEBSOCKET
+     * ==========================================
+     */
+
+    useEffect(() => {
+
+        if (!chatId || Number.isNaN(chatId)) {
+
+            setError("Chat information is missing.");
+            return;
         }
 
-        subscriptionRef.current = null;
-      }
+        let unsubscribe;
+
+        const initializeChat = async () => {
+
+            try {
+
+                setError(null);
+
+                /*
+                 * Clear messages from previous chat
+                 * before loading the new conversation.
+                 */
+
+                clearMessages();
+
+                /*
+                 * Load existing messages through Zustand.
+                 */
+
+                await getMessages(chatId);
+
+                /*
+                 * Connect WebSocket.
+                 */
+
+                await connect();
+
+                /*
+                 * Subscribe to incoming messages.
+                 */
+
+                unsubscribe = subscribeToMessages((message) => {
+
+                    /*
+                     * Only display messages belonging
+                     * to the current conversation.
+                     */
+
+                    if (
+                        Number(message.chatId) !==
+                        Number(chatId)
+                    ) {
+                        return;
+                    }
+
+                    addMessage(message);
+                });
+
+            } catch (error) {
+
+                console.error(
+                    "CHAT INITIALIZATION ERROR:",
+                    error
+                );
+
+                setError(
+                    error?.response?.data?.message ||
+                    error?.message ||
+                    "Unable to load conversation."
+                );
+            }
+        };
+
+        initializeChat();
+
+        /*
+         * Cleanup subscription when leaving chat.
+         */
+
+        return () => {
+
+            if (unsubscribe) {
+                unsubscribe();
+            }
+
+        };
+
+    }, [
+        chatId,
+        getMessages,
+        addMessage,
+        clearMessages
+    ]);
+
+
+    /*
+     * ==========================================
+     * SEND MESSAGE
+     * ==========================================
+     */
+
+    const handleSendMessage = (event) => {
+
+        event.preventDefault();
+
+        const trimmedContent = content.trim();
+
+        if (!trimmedContent) {
+            return;
+        }
+
+        /*
+         * Receiver ID is required.
+         *
+         * senderId is deliberately NOT passed.
+         */
+
+        if (
+            !receiverId ||
+            Number.isNaN(receiverId)
+        ) {
+
+            setError(
+                "Receiver information is missing."
+            );
+
+            return;
+        }
+
+        try {
+
+            sendMessage(
+                receiverId,
+                trimmedContent
+            );
+
+            setContent("");
+            setError(null);
+
+        } catch (error) {
+
+            console.error(
+                "SEND MESSAGE ERROR:",
+                error
+            );
+
+            setError(
+                error?.message ||
+                "Unable to send message."
+            );
+        }
     };
-  }, [chatId, addMessage]);
 
-  /*
-   * Clear messages when leaving the page
-   */
-  useEffect(() => {
-    return () => {
-      clearMessages();
+
+    /*
+     * ==========================================
+     * ENTER KEY
+     * ==========================================
+     */
+
+    const handleKeyDown = (event) => {
+
+        if (
+            event.key === "Enter" &&
+            !event.shiftKey
+        ) {
+
+            event.preventDefault();
+
+            handleSendMessage(event);
+        }
     };
-  }, [clearMessages]);
 
-  /*
-   * Scroll to latest message
-   */
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
-  }, [messages]);
 
-  /*
-   * Send message
-   *
-   * sellerId is the receiverId.
-   * senderId is determined by the backend from JWT.
-   */
-  const handleSendMessage = () => {
-    const content = inputText.trim();
+    /*
+     * ==========================================
+     * BACK BUTTON
+     * ==========================================
+     */
 
-    if (
-      !content ||
-      !Number.isFinite(chatId) ||
-      !Number.isFinite(sellerId)
-    ) {
-      return;
-    }
+    const handleBack = () => {
 
-    try {
-      sendMessage(sellerId, content);
+        if (isAdminChat) {
 
-      setInputText("");
-      setSendError(null);
-    } catch (error) {
-      console.error("Failed to send message:", error);
+            navigate("/admin/messages");
 
-      setSendError(
-        "Failed to send message. Please check your connection."
-      );
-    }
-  };
+        } else {
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+            navigate(-1);
+        }
+    };
 
-    handleSendMessage();
-  };
 
-  const handleKeyDown = (event) => {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
+    /*
+     * ==========================================
+     * DISPLAY ERROR
+     * ==========================================
+     */
 
-      handleSendMessage();
-    }
-  };
+    const displayedError =
+        error || storeError;
 
-  /*
-   * Invalid chat ID or missing seller ID
-   */
-  if (
-    !Number.isFinite(chatId) ||
-    !Number.isFinite(sellerId)
-  ) {
+
+    /*
+     * ==========================================
+     * UI
+     * ==========================================
+     */
+
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
-          <h2 className="text-xl font-bold text-slate-900">
-            Invalid chat
-          </h2>
+        <div className="min-h-screen bg-slate-50 flex flex-col">
 
-          <p className="text-sm text-slate-500 mt-2">
-            The chat could not be opened.
-          </p>
+            {/* ================= HEADER ================= */}
 
-          <Link
-            to="/profile"
-            className="inline-block mt-5 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg"
-          >
-            Go Back
-          </Link>
-        </div>
-      </div>
-    );
-  }
+            <div className="bg-white border-b border-slate-200">
 
-  return (
-    <div className="min-h-screen bg-slate-50 py-6 px-4 md:px-6 flex flex-col items-center">
+                <div className="max-w-5xl mx-auto px-4 md:px-6">
 
-      <div className="w-full max-w-4xl bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[82vh] min-h-[550px] overflow-hidden">
+                    <div className="h-16 flex items-center gap-3">
 
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between">
+                        <button
+                            type="button"
+                            onClick={handleBack}
+                            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 transition"
+                        >
 
-          <div className="flex items-center gap-3.5">
+                            <svg
+                                className="w-5 h-5 text-slate-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                strokeWidth="2"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M15 19l-7-7 7-7"
+                                />
+                            </svg>
 
-            <div className="relative">
+                        </button>
 
-              <div className="w-11 h-11 bg-blue-600 rounded-full flex items-center justify-center text-white">
 
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a.75.75 0 0 1-1.154-.63 4.545 4.545 0 0 1 1.258-3.033A8.196 8.196 0 0 1 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"
-                  />
-                </svg>
+                        {/* Avatar */}
 
-              </div>
+                        <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
 
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
+                            {otherUserName
+                                ?.charAt(0)
+                                ?.toUpperCase()
+                            }
 
-            </div>
+                        </div>
 
-            <div>
 
-              <h1 className="text-base font-bold text-slate-900">
-                Buyzen Customer Support
-              </h1>
+                        {/* User information */}
 
-              <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+                        <div className="min-w-0">
 
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                            <h1 className="text-sm font-semibold text-slate-900 truncate">
 
-                <span>
-                  {socketReady
-                    ? "Online Support Team"
-                    : "Connecting..."}
-                </span>
+                                {otherUserName}
 
-              </div>
+                            </h1>
 
-            </div>
+                            <p className="text-xs text-slate-500">
 
-          </div>
+                                {isAdminChat
+                                    ? "Customer"
+                                    : "BuyZen Support"
+                                }
 
-          <span className="text-xs font-medium text-slate-600 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-            Chat #{chatId}
-          </span>
+                            </p>
 
-        </div>
+                        </div>
 
-        {/* Error */}
-        {(error || sendError) && (
-          <div className="px-5 py-3 bg-red-50 border-b border-red-200">
-
-            <div className="flex items-center justify-between">
-
-              <span className="text-sm text-red-700">
-                {error || sendError}
-              </span>
-
-            </div>
-
-          </div>
-        )}
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-slate-50/60">
-
-          {loading && (
-            <div className="flex flex-col items-center justify-center py-16">
-
-              <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
-
-              <p className="text-sm font-medium text-slate-500 mt-3">
-                Loading conversation history...
-              </p>
-
-            </div>
-          )}
-
-          {!loading && messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-
-              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4">
-
-                <svg
-                  className="w-8 h-8"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth="1.8"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.502 49.188 49.188 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"
-                  />
-                </svg>
-
-              </div>
-
-              <h3 className="text-base font-semibold text-slate-900">
-                Start a conversation
-              </h3>
-
-              <p className="text-sm text-slate-500 max-w-sm mt-1">
-                Have questions about your order or products?
-                Send a message below to connect with Buyzen
-                customer support.
-              </p>
-
-            </div>
-          )}
-
-          {!loading &&
-            messages.map((message, index) => {
-
-              const isUser =
-                currentUserId !== null &&
-                Number(message.senderId) === currentUserId;
-
-              return (
-                <div
-                  key={`${message.chatId}-${message.senderId}-${index}`}
-                  className={`flex items-end gap-2.5 min-w-0 ${
-                    isUser
-                      ? "justify-end"
-                      : "justify-start"
-                  }`}
-                >
-
-                  {!isUser && (
-                    <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold shrink-0 mb-1">
-                      A
                     </div>
-                  )}
-
-                  <div
-                    className={`flex flex-col min-w-0 ${
-                      isUser
-                        ? "items-end"
-                        : "items-start"
-                    }`}
-                  >
-
-                    <span className="text-[11px] font-medium text-slate-400 mb-1 px-1">
-                      {isUser ? "You" : "Support"}
-                    </span>
-
-                    {/* Message bubble */}
-                    <div
-                      className={`px-4 py-2.5 text-sm w-fit max-w-[85%] md:max-w-[70%] min-w-0 whitespace-pre-wrap break-words shadow-sm ${
-                        isUser
-                          ? "bg-blue-600 text-white rounded-2xl rounded-br-sm"
-                          : "bg-white text-slate-800 border border-slate-200 rounded-2xl rounded-bl-sm"
-                      }`}
-                    >
-                      {message.content}
-                    </div>
-
-                  </div>
 
                 </div>
-              );
-            })}
 
-          <div ref={messagesEndRef} />
+            </div>
+
+
+            {/* ================= CHAT AREA ================= */}
+
+            <div className="flex-1">
+
+                <div className="max-w-5xl mx-auto px-4 md:px-6 py-6">
+
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+
+
+                        {/* Messages */}
+
+                        <div className="h-[calc(100vh-190px)] min-h-[400px] overflow-y-auto p-4 md:p-6">
+
+
+                            {/* Loading */}
+
+                            {loading && (
+                                <div className="flex items-center justify-center h-full">
+
+                                    <div className="flex flex-col items-center">
+
+                                        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+
+                                        <p className="text-sm text-slate-500 mt-3">
+
+                                            Loading messages...
+
+                                        </p>
+
+                                    </div>
+
+                                </div>
+                            )}
+
+
+                            {/* Error */}
+
+                            {!loading &&
+                                displayedError && (
+
+                                    <div className="flex items-center justify-center h-full">
+
+                                        <div className="text-center">
+
+                                            <div className="w-12 h-12 mx-auto bg-red-50 text-red-500 rounded-full flex items-center justify-center">
+
+                                                <svg
+                                                    className="w-6 h-6"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                    strokeWidth="2"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        d="M12 9v3.75m0 3.75h.008M10.29 3.86 2.82 17.25a1.875 1.875 0 0 0 1.63 2.812h15.1a1.875 1.875 0 0 0-1.63-2.812L13.71 3.86a1.875 1.875 0 0 0-3.42 0Z"
+                                                    />
+                                                </svg>
+
+                                            </div>
+
+                                            <p className="mt-3 text-sm font-medium text-slate-700">
+
+                                                {displayedError}
+
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+                                )}
+
+
+                            {/* Empty chat */}
+
+                            {!loading &&
+                                !displayedError &&
+                                messages.length === 0 && (
+
+                                    <div className="flex items-center justify-center h-full">
+
+                                        <div className="text-center">
+
+                                            <div className="w-14 h-14 mx-auto bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+
+                                                <svg
+                                                    className="w-7 h-7"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                    strokeWidth="1.8"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.584.233 2.707 1.626 2.707 3.228v.21a.75.75 0 0 0 1.154.63 5.972 5.972 0 0 0 3.035-1.078A9.764 9.764 0 0 0 12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25-9 3.694-9 8.25c0 1.6.467 3.093 1.258 4.37"
+                                                    />
+                                                </svg>
+
+                                            </div>
+
+                                            <h3 className="mt-4 text-sm font-semibold text-slate-900">
+
+                                                No messages yet
+
+                                            </h3>
+
+                                            <p className="mt-1 text-sm text-slate-500">
+
+                                                Start the conversation below.
+
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+                                )}
+
+
+                            {/* Message list */}
+
+                            {!loading &&
+                                !displayedError &&
+                                messages.length > 0 && (
+
+                                    <div className="space-y-3">
+
+                                        {messages.map((message, index) => {
+
+                                            const senderId =
+                                                Number(message.senderId);
+
+                                            const isMine =
+                                                senderId ===
+                                                currentUserId;
+
+                                            return (
+                                                <div
+                                                    key={
+                                                        message.id ||
+                                                        `${message.chatId}-${index}`
+                                                    }
+                                                    className={`flex ${
+                                                        isMine
+                                                            ? "justify-end"
+                                                            : "justify-start"
+                                                    }`}
+                                                >
+
+                                                    <div
+                                                        className={`max-w-[75%] md:max-w-[60%] px-4 py-2.5 rounded-2xl ${
+                                                            isMine
+                                                                ? "bg-blue-600 text-white rounded-br-md"
+                                                                : "bg-slate-100 text-slate-800 rounded-bl-md"
+                                                        }`}
+                                                    >
+
+                                                        <p className="text-sm whitespace-pre-wrap break-words">
+
+                                                            {message.content}
+
+                                                        </p>
+
+                                                        {message.createdAt && (
+
+                                                            <p
+                                                                className={`text-[10px] mt-1 ${
+                                                                    isMine
+                                                                        ? "text-blue-100"
+                                                                        : "text-slate-400"
+                                                                }`}
+                                                            >
+
+                                                                {new Date(
+                                                                    message.createdAt
+                                                                ).toLocaleTimeString(
+                                                                    [],
+                                                                    {
+                                                                        hour: "2-digit",
+                                                                        minute: "2-digit"
+                                                                    }
+                                                                )}
+
+                                                            </p>
+
+                                                        )}
+
+                                                    </div>
+
+                                                </div>
+                                            );
+                                        })}
+
+                                    </div>
+                                )}
+
+
+                            <div ref={messagesEndRef} />
+
+                        </div>
+
+
+                        {/* ================= INPUT ================= */}
+
+                        <form
+                            onSubmit={handleSendMessage}
+                            className="border-t border-slate-200 p-4"
+                        >
+
+                            <div className="flex items-end gap-3">
+
+                                <textarea
+                                    value={content}
+                                    onChange={(event) =>
+                                        setContent(event.target.value)
+                                    }
+                                    onKeyDown={handleKeyDown}
+                                    placeholder="Type a message..."
+                                    rows={1}
+                                    className="flex-1 resize-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+
+
+                                <button
+                                    type="submit"
+                                    disabled={!content.trim()}
+                                    className="w-11 h-11 shrink-0 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl flex items-center justify-center transition"
+                                >
+
+                                    <svg
+                                        className="w-5 h-5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth="2"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="m22 2-7 20-4-9-9-4Z"
+                                        />
+
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M22 2 11 13"
+                                        />
+
+                                    </svg>
+
+                                </button>
+
+                            </div>
+
+                        </form>
+
+                    </div>
+
+                </div>
+
+            </div>
 
         </div>
-
-        {/* Composer */}
-        <div className="p-4 bg-white border-t border-slate-200">
-
-          <form
-            onSubmit={handleSubmit}
-            className="flex items-end gap-3"
-          >
-
-            <textarea
-              value={inputText}
-              onChange={(event) =>
-                setInputText(event.target.value)
-              }
-              onKeyDown={handleKeyDown}
-              placeholder="Type your message..."
-              rows={1}
-              className="w-full resize-none px-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-900 placeholder:text-slate-400 transition-all duration-150 max-h-32 min-h-[44px]"
-            />
-
-            <button
-              type="submit"
-              disabled={
-                !inputText.trim() ||
-                !socketReady ||
-                loading
-              }
-              className="h-11 px-5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium rounded-xl text-sm flex items-center justify-center gap-2 transition-all duration-200 shadow-sm shrink-0"
-            >
-              <span>Send</span>
-
-              <svg
-                className="w-4 h-4 rotate-90"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path d="M10.894 2.553a1 1 0 0 0-1.788 0l-7 14a1 1 0 0 0 1.169 1.409l5-1.429A1 1 0 0 0 9 15.571V11a1 1 0 1 1 2 0v4.571a1 1 0 0 0 .725.962l5 1.428a1 1 0 0 0 1.17-1.408l-7-14z" />
-              </svg>
-
-            </button>
-
-          </form>
-
-          <p className="text-xs text-slate-400 mt-2">
-            Press Enter to send · Shift + Enter for a new line
-          </p>
-
-        </div>
-
-      </div>
-
-    </div>
-  );
-}
+    );
+};
 
 export default ChatPage;
+ 
