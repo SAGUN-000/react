@@ -97,5 +97,51 @@ const updateOrderStatus=async(orderId,status)=>{
     return res.data;
 };
 
-export { getUserPurchase,getUsers,getAllOrders,updateOrderStatus,getAllUsersWithChats};
+const getProfile=async()=>{
+
+      const token = localStorage.getItem("jwt_token");
+
+    if (!token) {
+        throw new Error("User is not logged in");
+    }
+
+    const res=await axios.get("http://localhost:8080/admin/profile",{
+         headers: {
+                Authorization: `Bearer ${token}`
+            }
+    })
+
+    return res.data
+
+
+}
+
+ 
+
+const updatePassword = async (oldPass, newPass) => {
+  const token = localStorage.getItem("jwt_token");
+
+  if (!token) {
+    throw new Error("User is not logged in");
+  }
+
+  const res = await axios.patch(
+    "http://localhost:8080/admin/updatepassword",
+    {
+      oldPass,
+      newPass,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return res.data;
+};
+
+ 
+
+export { getUserPurchase,getUsers,getAllOrders,updateOrderStatus,getAllUsersWithChats,getProfile,updatePassword};
  

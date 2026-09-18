@@ -22,6 +22,7 @@ import OAuth2Success from './components/OAuth2Success';
 import ChatPage from './pages/ChatPage';
 import UpdatePasswordPage from './pages/updatepasswordPage';
 import Messages from './protected_routes/UserMessages';
+import AdminProfile from './protected_routes/adminProfile';
 
 function App() {
   const [cartItems, setCartItems] = useState([]);
@@ -90,27 +91,29 @@ function App() {
     setCurrentPage(0);
   }, [keyword]);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const pageNum = Math.max(1, currentPage + 1);
-        const url = keyword
-          ? `http://localhost:8080/products?keyword=${encodeURIComponent(keyword)}&pageNum=${pageNum}`
-          : `http://localhost:8080/products?pageNum=${pageNum}`;
+   useEffect(() => {
+  const fetchProducts = async () => {
+    try {
+      const pageNum = Math.max(1, currentPage + 1);
 
-        const res = await axios.get(url);
-        
-        setProducts(res.data.content || res.data);
-        setTotalPages(res.data.totalPages || 0);
-      } catch (err) {
-        console.error(err);
-        setProducts([]);
-      }
-    };
+      const url = keyword
+        ? `http://localhost:8080/products?keyword=${encodeURIComponent(keyword)}&pageNum=${pageNum}`
+        : `http://localhost:8080/products?pageNum=${pageNum}`;
 
-    fetchProducts();
-  }, [keyword, currentPage]);
+      const res = await axios.get(url);
 
+      setProducts(res.data.content);
+      setTotalPages(res.data.totalPages);
+
+    } catch (err) {
+      console.error(err);
+      setProducts([]);
+      setTotalPages(0);
+    }
+  };
+
+  fetchProducts();
+}, [keyword, currentPage]);
    
   //delete cartItems
 
@@ -283,7 +286,7 @@ function App() {
         { path: "categories/:slug", element: <Categories /> },
         { path: "product_details/:id", element: <ProductDetails /> },
         {path:"/profile",element:<Profile/>},
-        {path:"/update-password",element:<ProtectedRoute><UpdatePasswordPage/></ProtectedRoute>},
+       
         {path:"/updatepassword",element:<ProtectedRoute><UpdatePasswordPage/></ProtectedRoute>},
         {path:"/chat/:chatId",element:<ChatPage/>},
         {path:"checkout",element:<ProtectedRoute><Checkout/></ProtectedRoute>},
@@ -309,6 +312,14 @@ function App() {
     {
       path:"/admin/messages/:userId",
       element:<ProtectedRoute><ChatPage></ChatPage></ProtectedRoute>
+    },
+    {
+      path:"/admin/profile",
+      element:<AdminProfile/>
+    },
+     {
+      path:"/admin/update-password",
+      element: <UpdatePasswordPage/>
     }
   ]);
 

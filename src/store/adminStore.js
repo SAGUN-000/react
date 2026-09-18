@@ -1,5 +1,4 @@
-
-import { create } from "zustand";
+ import { create } from "zustand";
 
 import {
     getUserPurchase,
@@ -7,6 +6,7 @@ import {
     getAllOrders,
     updateOrderStatus,
     getAllUsersWithChats,
+    getProfile,
 } from "../API/AdminApi.js";
 
 
@@ -20,13 +20,53 @@ const useAdminStore = create((set) => ({
     users: [],
     orders: [],
     userChats: [],
+    profile: null,
 
     loadingPurchases: false,
     loadingUsers: false,
     loadingOrders: false,
     loadingUserChats: false,
+    loadingProfile: false,
 
     error: null,
+
+
+    // =========================
+    // FETCH PROFILE
+    // =========================
+
+    fetchProfile: async () => {
+
+        set({
+            loadingProfile: true,
+            error: null
+        });
+
+        try {
+
+            const data = await getProfile();
+
+            console.log("PROFILE API DATA:", data);
+
+            set({
+                profile: data,
+                loadingProfile: false
+            });
+
+            return data;
+
+        } catch (error) {
+
+            console.error("FETCH PROFILE ERROR:", error);
+
+            set({
+                error: error.message,
+                loadingProfile: false
+            });
+
+            throw error;
+        }
+    },
 
 
     // =========================
@@ -221,6 +261,19 @@ const useAdminStore = create((set) => ({
 
 
     // =========================
+    // SET PROFILE
+    // =========================
+
+    setProfile: (profile) => {
+
+        set({
+            profile: profile
+        });
+
+    },
+
+
+    // =========================
     // SET USERS
     // =========================
 
@@ -297,11 +350,13 @@ const useAdminStore = create((set) => ({
             users: [],
             orders: [],
             userChats: [],
+            profile: null,
 
             loadingPurchases: false,
             loadingUsers: false,
             loadingOrders: false,
             loadingUserChats: false,
+            loadingProfile: false,
 
             error: null
 
@@ -311,9 +366,7 @@ const useAdminStore = create((set) => ({
 
 }));
 
+
 console.log("ADMIN STORE STATE:", useAdminStore.getState());
 
 export default useAdminStore;
- 
-
- 

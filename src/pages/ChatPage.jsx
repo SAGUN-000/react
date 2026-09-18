@@ -341,7 +341,7 @@ const ChatPage = () => {
 
         if (isAdminChat) {
 
-            navigate("/admin/messages");
+            navigate("/admin/users/messages");
 
         } else {
 

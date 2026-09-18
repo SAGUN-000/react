@@ -71,6 +71,28 @@ console.log("USER CHATS:", userChats);
                     PAGE HEADER
                 ========================= */}
 
+                <button
+                    type="button"
+                    onClick={() => navigate("/admin")}
+                    className="inline-flex items-center gap-2 mb-4 text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors"
+                >
+                    <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        strokeWidth="2"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M15 19l-7-7 7-7"
+                        />
+                    </svg>
+
+                    Back 
+                </button>
+
                 <div className="mb-6">
 
                     <h1 className="text-2xl font-bold text-slate-900">
