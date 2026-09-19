@@ -2,6 +2,7 @@
  
 import Navbar from "../header/navbar";
 import Footer from "../footer/footer";
+import MessageBox from "./messageBox";
 
 function Layout({ cartItems, onCartClick,deleteCartItem ,keyword, setKeyword, 
   products, subtotal, fetchCartItems,fetchUserDetails, prepareCheckout, placeOrder, fetchOrders, orderItems,orderSubtotal, currentPage, setCurrentPage, totalPages}) {
@@ -12,6 +13,7 @@ function Layout({ cartItems, onCartClick,deleteCartItem ,keyword, setKeyword,
      
     
     <Navbar keyword={keyword} setkeyword={setKeyword} cartItems={cartItems} />
+    <MessageBox/>
     
        
       <Outlet context={{ products, cartItems, deleteCartItem,onCartClick, subtotal,

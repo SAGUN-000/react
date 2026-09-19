@@ -1,5 +1,5 @@
-import { create } from "zustand";
- import { getMessageHistory } from "../API/MessageApi";
+ import { create } from "zustand";
+import { getMessageHistory } from "../API/MessageApi";
 
 const useMessageStore = create((set) => ({
     messages: [],
@@ -7,31 +7,45 @@ const useMessageStore = create((set) => ({
     error: null,
 
     getMessages: async (chatId) => {
-        set({ loading: true, error: null });
+        set({
+            loading: true,
+            error: null
+        });
 
         try {
-            const messages = await getMessageHistory(chatId);
+            const data = await getMessageHistory(chatId);
 
             set({
-                messages,
+                messages: data.messages,
                 loading: false
             });
+
+            return data;
+
         } catch (error) {
+
             set({
                 error: error.message,
                 loading: false
             });
+
+            throw error;
         }
     },
 
     addMessage: (message) => {
         set((state) => ({
-            messages: [...state.messages, message]
+            messages: [
+                ...state.messages,
+                message
+            ]
         }));
     },
 
     clearMessages: () => {
-        set({ messages: [] });
+        set({
+            messages: []
+        });
     }
 }));
 

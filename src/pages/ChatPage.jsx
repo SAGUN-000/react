@@ -1,13 +1,16 @@
  
 import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+    useLocation,
+    useNavigate,
+    useParams
+} from "react-router-dom";
 
 import useMessageStore from "../store/MessageStore.js";
 
 import {
     sendMessage,
     connect,
-    disconnect,
     subscribeToMessages
 } from "../socket/socketClient.js";
 
@@ -22,51 +25,16 @@ const ChatPage = () => {
         userId: userIdParam
     } = useParams();
 
-    const state = location.state;
 
     /*
      * ==========================================
      * ADMIN / CUSTOMER CHAT
      * ==========================================
-     *
-     * Admin:
-     * /admin/messages/:userId
-     *
-     * Customer:
-     * /chat/:chatId
      */
 
     const isAdminChat = Boolean(userIdParam);
 
-    /*
-     * Admin gets chatId from navigation state.
-     *
-     * Customer gets chatId directly from URL.
-     */
-
-    const chatId = isAdminChat
-        ? Number(state?.chatId)
-        : Number(chatIdParam);
-
-    /*
-     * Admin:
-     * receiver = customer
-     *
-     * Customer:
-     * receiver = seller/support
-     */
-
-    const receiverId = isAdminChat
-        ? Number(userIdParam)
-        : Number(state?.sellerId);
-
-    /*
-     * Name displayed in header.
-     */
-
-    const otherUserName = isAdminChat
-        ? state?.userName || "Customer"
-        : "BuyZen Support";
+    const state = location.state;
 
 
     /*
@@ -93,6 +61,7 @@ const ChatPage = () => {
 
     const [content, setContent] = useState("");
     const [error, setError] = useState(null);
+    const [receiverId, setReceiverId] = useState(null);
 
     const messagesEndRef = useRef(null);
 
@@ -101,16 +70,12 @@ const ChatPage = () => {
      * ==========================================
      * CURRENT USER ID
      * ==========================================
-     *
-     * Sender ID is NOT sent by the client.
-     *
-     * The backend gets the authenticated
-     * WebSocket user and determines senderId.
      */
 
     const getCurrentUserId = () => {
 
-        const token = localStorage.getItem("jwt_token");
+        const token =
+            localStorage.getItem("jwt_token");
 
         if (!token) {
             return null;
@@ -118,9 +83,10 @@ const ChatPage = () => {
 
         try {
 
-            const payload = JSON.parse(
-                atob(token.split(".")[1])
-            );
+            const payload =
+                JSON.parse(
+                    atob(token.split(".")[1])
+                );
 
             return Number(payload.userId);
 
@@ -135,7 +101,8 @@ const ChatPage = () => {
         }
     };
 
-    const currentUserId = getCurrentUserId();
+    const currentUserId =
+        getCurrentUserId();
 
 
     /*
@@ -155,67 +122,218 @@ const ChatPage = () => {
 
     /*
      * ==========================================
-     * LOAD CHAT + CONNECT WEBSOCKET
+     * LOAD CHAT + WEBSOCKET
      * ==========================================
      */
 
     useEffect(() => {
 
-        if (!chatId || Number.isNaN(chatId)) {
-
-            setError("Chat information is missing.");
-            return;
-        }
-
-        let unsubscribe;
+        let unsubscribe = null;
+        let cancelled = false;
 
         const initializeChat = async () => {
 
             try {
 
                 setError(null);
-
-                /*
-                 * Clear messages from previous chat
-                 * before loading the new conversation.
-                 */
-
                 clearMessages();
 
+                let chatId;
+
+
                 /*
-                 * Load existing messages through Zustand.
+                 * ======================================
+                 * ADMIN CHAT
+                 * ======================================
                  */
 
-                await getMessages(chatId);
+                if (isAdminChat) {
+
+                    chatId =
+                        Number(state?.chatId);
+
+                    if (
+                        !chatId ||
+                        Number.isNaN(chatId)
+                    ) {
+
+                        setError(
+                            "Chat information is missing."
+                        );
+
+                        return;
+                    }
+
+
+                    const customerId =
+                        Number(userIdParam);
+
+                    if (
+                        !customerId ||
+                        Number.isNaN(customerId)
+                    ) {
+
+                        setError(
+                            "Customer information is missing."
+                        );
+
+                        return;
+                    }
+
+                    setReceiverId(customerId);
+                }
+
 
                 /*
-                 * Connect WebSocket.
+                 * ======================================
+                 * CUSTOMER CHAT
+                 * ======================================
+                 */
+
+                else {
+
+                    chatId =
+                        Number(chatIdParam);
+
+                    if (
+                        !chatId ||
+                        Number.isNaN(chatId)
+                    ) {
+
+                        setError(
+                            "Chat information is missing."
+                        );
+
+                        return;
+                    }
+                }
+
+
+                /*
+                 * ======================================
+                 * LOAD MESSAGE HISTORY
+                 * ======================================
+                 */
+
+                const chat =
+                    await getMessages(chatId);
+
+
+                /*
+                 * Component was unmounted while
+                 * message history was loading.
+                 */
+
+                if (cancelled) {
+                    return;
+                }
+
+
+                /*
+                 * ======================================
+                 * CUSTOMER RECEIVER
+                 * ======================================
+                 */
+
+                if (!isAdminChat) {
+
+                    if (
+                        chat?.receiverId == null ||
+                        Number.isNaN(
+                            Number(chat.receiverId)
+                        )
+                    ) {
+
+                        throw new Error(
+                            "Receiver information is missing."
+                        );
+                    }
+
+                    setReceiverId(
+                        Number(chat.receiverId)
+                    );
+                }
+
+
+                /*
+                 * ======================================
+                 * CONNECT WEBSOCKET
+                 * ======================================
                  */
 
                 await connect();
 
+
                 /*
-                 * Subscribe to incoming messages.
+                 * Component was unmounted while
+                 * WebSocket was connecting.
                  */
 
-                unsubscribe = subscribeToMessages((message) => {
+                if (cancelled) {
+                    return;
+                }
 
-                    /*
-                     * Only display messages belonging
-                     * to the current conversation.
-                     */
 
-                    if (
-                        Number(message.chatId) !==
-                        Number(chatId)
-                    ) {
-                        return;
-                    }
+                /*
+                 * ======================================
+                 * SUBSCRIBE
+                 * ======================================
+                 */
 
-                    addMessage(message);
-                });
+                console.log(
+                    "ABOUT TO SUBSCRIBE"
+                );
+
+                const subscription =
+                    subscribeToMessages((message) => {
+
+                        console.log(
+                            "RECEIVED MESSAGE:",
+                            message
+                        );
+
+                        /*
+                         * Ignore messages belonging
+                         * to another chat.
+                         */
+
+                        if (
+                            Number(message.chatId) !==
+                            chatId
+                        ) {
+                            return;
+                        }
+
+                        addMessage(message);
+                    });
+
+
+                /*
+                 * If cleanup happened while
+                 * subscribeToMessages() was running,
+                 * immediately remove the subscription.
+                 */
+
+                if (cancelled) {
+
+                    subscription.unsubscribe();
+
+                } else {
+
+                    unsubscribe =
+                        subscription;
+                }
+
+
+                console.log(
+                    "SUBSCRIBED"
+                );
 
             } catch (error) {
+
+                if (cancelled) {
+                    return;
+                }
 
                 console.error(
                     "CHAT INITIALIZATION ERROR:",
@@ -230,22 +348,41 @@ const ChatPage = () => {
             }
         };
 
+
         initializeChat();
 
+
         /*
-         * Cleanup subscription when leaving chat.
+         * ==========================================
+         * CLEANUP
+         * ==========================================
          */
 
         return () => {
 
-            if (unsubscribe) {
-                unsubscribe();
-            }
+            cancelled = true;
 
+            console.log(
+                "CHAT PAGE CLEANUP"
+            );
+
+            if (unsubscribe) {
+
+                console.log(
+                    "UNSUBSCRIBING"
+                );
+
+                unsubscribe.unsubscribe();
+
+                unsubscribe = null;
+            }
         };
 
     }, [
-        chatId,
+        chatIdParam,
+        userIdParam,
+        isAdminChat,
+        state?.chatId,
         getMessages,
         addMessage,
         clearMessages
@@ -260,24 +397,37 @@ const ChatPage = () => {
 
     const handleSendMessage = (event) => {
 
+        console.log(
+            "SEND CALLED"
+        );
+
         event.preventDefault();
 
-        const trimmedContent = content.trim();
+        const trimmedContent =
+            content.trim();
 
         if (!trimmedContent) {
             return;
         }
 
+
         /*
-         * Receiver ID is required.
+         * Customer:
+         * receiverId came from backend.
          *
-         * senderId is deliberately NOT passed.
+         * Admin:
+         * receiverId came from URL.
          */
 
         if (
-            !receiverId ||
+            receiverId == null ||
             Number.isNaN(receiverId)
         ) {
+
+            console.error(
+                "Invalid receiverId:",
+                receiverId
+            );
 
             setError(
                 "Receiver information is missing."
@@ -286,7 +436,16 @@ const ChatPage = () => {
             return;
         }
 
+
         try {
+
+            console.log(
+                "SENDING MESSAGE:",
+                {
+                    receiverId,
+                    content: trimmedContent
+                }
+            );
 
             sendMessage(
                 receiverId,
@@ -341,7 +500,9 @@ const ChatPage = () => {
 
         if (isAdminChat) {
 
-            navigate("/admin/users/messages");
+            navigate(
+                "/admin/users/messages"
+            );
 
         } else {
 
@@ -362,12 +523,26 @@ const ChatPage = () => {
 
     /*
      * ==========================================
+     * USER NAME
+     * ==========================================
+     */
+
+    const otherUserName =
+        isAdminChat
+            ? state?.userName || "Customer"
+            : "BuyZen Support";
+
+
+    /*
+     * ==========================================
      * UI
      * ==========================================
      */
 
     return (
+
         <div className="min-h-screen bg-slate-50 flex flex-col">
+
 
             {/* ================= HEADER ================= */}
 
@@ -376,6 +551,9 @@ const ChatPage = () => {
                 <div className="max-w-5xl mx-auto px-4 md:px-6">
 
                     <div className="h-16 flex items-center gap-3">
+
+
+                        {/* Back button */}
 
                         <button
                             type="button"
@@ -390,11 +568,13 @@ const ChatPage = () => {
                                 viewBox="0 0 24 24"
                                 strokeWidth="2"
                             >
+
                                 <path
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
                                     d="M15 19l-7-7 7-7"
                                 />
+
                             </svg>
 
                         </button>
@@ -449,7 +629,7 @@ const ChatPage = () => {
                     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
 
 
-                        {/* Messages */}
+                        {/* ================= MESSAGES ================= */}
 
                         <div className="h-[calc(100vh-190px)] min-h-[400px] overflow-y-auto p-4 md:p-6">
 
@@ -457,6 +637,7 @@ const ChatPage = () => {
                             {/* Loading */}
 
                             {loading && (
+
                                 <div className="flex items-center justify-center h-full">
 
                                     <div className="flex flex-col items-center">
@@ -472,6 +653,7 @@ const ChatPage = () => {
                                     </div>
 
                                 </div>
+
                             )}
 
 
@@ -493,11 +675,13 @@ const ChatPage = () => {
                                                     viewBox="0 0 24 24"
                                                     strokeWidth="2"
                                                 >
+
                                                     <path
                                                         strokeLinecap="round"
                                                         strokeLinejoin="round"
-                                                        d="M12 9v3.75m0 3.75h.008M10.29 3.86 2.82 17.25a1.875 1.875 0 0 0 1.63 2.812h15.1a1.875 1.875 0 0 0-1.63-2.812L13.71 3.86a1.875 1.875 0 0 0-3.42 0Z"
+                                                        d="M12 9v3.75m0 3.75h.008M10.29 3.86 2.82 17.25a1.875 1.875 0 0 0 1.63 2.812h15.1a1.875 1.875 0 0 0 1.63 0L13.71 3.86a1.875 1.875 0 0 0-3.42 0Z"
                                                     />
+
                                                 </svg>
 
                                             </div>
@@ -533,11 +717,13 @@ const ChatPage = () => {
                                                     viewBox="0 0 24 24"
                                                     strokeWidth="1.8"
                                                 >
+
                                                     <path
                                                         strokeLinecap="round"
                                                         strokeLinejoin="round"
                                                         d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.584.233 2.707 1.626 2.707 3.228v.21a.75.75 0 0 0 1.154.63 5.972 5.972 0 0 0 3.035-1.078A9.764 9.764 0 0 0 12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25-9 3.694-9 8.25c0 1.6.467 3.093 1.258 4.37"
                                                     />
+
                                                 </svg>
 
                                             </div>
@@ -568,77 +754,89 @@ const ChatPage = () => {
 
                                     <div className="space-y-3">
 
-                                        {messages.map((message, index) => {
+                                        {messages.map(
+                                            (message, index) => {
 
-                                            const senderId =
-                                                Number(message.senderId);
+                                                const senderId =
+                                                    Number(
+                                                        message.senderId
+                                                    );
 
-                                            const isMine =
-                                                senderId ===
-                                                currentUserId;
+                                                const isMine =
+                                                    senderId ===
+                                                    currentUserId;
 
-                                            return (
-                                                <div
-                                                    key={
-                                                        message.id ||
-                                                        `${message.chatId}-${index}`
-                                                    }
-                                                    className={`flex ${
-                                                        isMine
-                                                            ? "justify-end"
-                                                            : "justify-start"
-                                                    }`}
-                                                >
+                                                return (
 
                                                     <div
-                                                        className={`max-w-[75%] md:max-w-[60%] px-4 py-2.5 rounded-2xl ${
+                                                        key={
+                                                            message.id ||
+                                                            `${message.chatId}-${index}`
+                                                        }
+                                                        className={`flex ${
                                                             isMine
-                                                                ? "bg-blue-600 text-white rounded-br-md"
-                                                                : "bg-slate-100 text-slate-800 rounded-bl-md"
+                                                                ? "justify-end"
+                                                                : "justify-start"
                                                         }`}
                                                     >
 
-                                                        <p className="text-sm whitespace-pre-wrap break-words">
+                                                        <div
+                                                            className={`max-w-[75%] md:max-w-[60%] px-4 py-2.5 rounded-2xl ${
+                                                                isMine
+                                                                    ? "bg-blue-600 text-white rounded-br-md"
+                                                                    : "bg-slate-100 text-slate-800 rounded-bl-md"
+                                                            }`}
+                                                        >
 
-                                                            {message.content}
+                                                            <p className="text-sm whitespace-pre-wrap break-words">
 
-                                                        </p>
-
-                                                        {message.createdAt && (
-
-                                                            <p
-                                                                className={`text-[10px] mt-1 ${
-                                                                    isMine
-                                                                        ? "text-blue-100"
-                                                                        : "text-slate-400"
-                                                                }`}
-                                                            >
-
-                                                                {new Date(
-                                                                    message.createdAt
-                                                                ).toLocaleTimeString(
-                                                                    [],
-                                                                    {
-                                                                        hour: "2-digit",
-                                                                        minute: "2-digit"
-                                                                    }
-                                                                )}
+                                                                {
+                                                                    message.content
+                                                                }
 
                                                             </p>
 
-                                                        )}
+
+                                                            {message.createdAt && (
+
+                                                                <p
+                                                                    className={`text-[10px] mt-1 ${
+                                                                        isMine
+                                                                            ? "text-blue-100"
+                                                                            : "text-slate-400"
+                                                                    }`}
+                                                                >
+
+                                                                    {new Date(
+                                                                        message.createdAt
+                                                                    ).toLocaleTimeString(
+                                                                        [],
+                                                                        {
+                                                                            hour: "2-digit",
+                                                                            minute: "2-digit"
+                                                                        }
+                                                                    )}
+
+                                                                </p>
+
+                                                            )}
+
+                                                        </div>
 
                                                     </div>
 
-                                                </div>
-                                            );
-                                        })}
+                                                );
+                                            }
+                                        )}
 
                                     </div>
+
                                 )}
 
 
-                            <div ref={messagesEndRef} />
+                            <div
+                                ref={messagesEndRef}
+                            />
 
                         </div>
 
@@ -655,7 +853,9 @@ const ChatPage = () => {
                                 <textarea
                                     value={content}
                                     onChange={(event) =>
-                                        setContent(event.target.value)
+                                        setContent(
+                                            event.target.value
+                                        )
                                     }
                                     onKeyDown={handleKeyDown}
                                     placeholder="Type a message..."
@@ -677,6 +877,7 @@ const ChatPage = () => {
                                         viewBox="0 0 24 24"
                                         strokeWidth="2"
                                     >
+
                                         <path
                                             strokeLinecap="round"
                                             strokeLinejoin="round"

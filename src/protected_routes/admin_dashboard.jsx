@@ -13,6 +13,7 @@ import {
     Filler,
 } from "chart.js";
 
+ import { deleteUser } from "../API/AdminApi.js";
 import useAdminStore from "../store/adminStore";
 
 ChartJS.register(
@@ -24,7 +25,6 @@ ChartJS.register(
     Legend,
     Filler
 );
-
 
 // =====================================================
 // ICONS
@@ -49,7 +49,6 @@ function DashboardIcon({ className = "w-5 h-5" }) {
     );
 }
 
-
 function ProductIcon({ className = "w-5 h-5" }) {
     return (
         <svg
@@ -68,7 +67,6 @@ function ProductIcon({ className = "w-5 h-5" }) {
     );
 }
 
-
 function OrderIcon({ className = "w-5 h-5" }) {
     return (
         <svg
@@ -85,7 +83,6 @@ function OrderIcon({ className = "w-5 h-5" }) {
         </svg>
     );
 }
-
 
 function UsersIcon({ className = "w-5 h-5" }) {
     return (
@@ -106,7 +103,6 @@ function UsersIcon({ className = "w-5 h-5" }) {
     );
 }
 
-
 function InventoryIcon({ className = "w-5 h-5" }) {
     return (
         <svg
@@ -124,7 +120,6 @@ function InventoryIcon({ className = "w-5 h-5" }) {
         </svg>
     );
 }
-
 
 function ReportsIcon({ className = "w-5 h-5" }) {
     return (
@@ -145,7 +140,6 @@ function ReportsIcon({ className = "w-5 h-5" }) {
     );
 }
 
-
 function SettingsIcon({ className = "w-5 h-5" }) {
     return (
         <svg
@@ -162,7 +156,6 @@ function SettingsIcon({ className = "w-5 h-5" }) {
         </svg>
     );
 }
-
 
 function ChatIcon({ className = "w-5 h-5" }) {
     return (
@@ -183,7 +176,6 @@ function ChatIcon({ className = "w-5 h-5" }) {
     );
 }
 
-
 function StoreIcon({ className = "w-4 h-4" }) {
     return (
         <svg
@@ -203,7 +195,6 @@ function StoreIcon({ className = "w-4 h-4" }) {
     );
 }
 
-
 function ProfileIcon({ className = "w-5 h-5" }) {
     return (
         <svg
@@ -221,6 +212,26 @@ function ProfileIcon({ className = "w-5 h-5" }) {
     );
 }
 
+function TrashIcon({ className = "w-5 h-5" }) {
+    return (
+        <svg
+            className={className}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            <path d="M3 6h18" />
+            <path d="M8 6V4h8v2" />
+            <path d="M19 6l-1 14H6L5 6" />
+            <path d="M10 11v5" />
+            <path d="M14 11v5" />
+        </svg>
+    );
+}
 
 function LogoMark() {
     return (
@@ -232,22 +243,17 @@ function LogoMark() {
     );
 }
 
-
 // =====================================================
 // STAT CARD
 // =====================================================
 
 function StatCard({ title, value, delta, icon }) {
-
     const isPositive = delta?.value >= 0;
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
-
             <div className="flex items-start justify-between gap-4">
-
                 <div className="min-w-0">
-
                     <p className="text-sm text-slate-500">
                         {title}
                     </p>
@@ -255,13 +261,11 @@ function StatCard({ title, value, delta, icon }) {
                     <p className="text-2xl font-semibold text-slate-900 mt-2 truncate">
                         {value}
                     </p>
-
                 </div>
 
                 <div className="w-10 h-10 shrink-0 rounded-lg bg-blue-600 flex items-center justify-center text-white">
                     {icon}
                 </div>
-
             </div>
 
             {delta && (
@@ -281,18 +285,15 @@ function StatCard({ title, value, delta, icon }) {
                     </span>
                 </p>
             )}
-
         </div>
     );
 }
-
 
 // =====================================================
 // SIDEBAR
 // =====================================================
 
 function Sidebar() {
-
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -341,17 +342,13 @@ function Sidebar() {
 
     return (
         <aside className="w-60 pr-6 hidden lg:block shrink-0">
-
             <div className="sticky top-6">
-
                 <nav className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
 
                     {/* BRAND */}
 
                     <div className="px-4 py-4 border-b border-slate-100">
-
                         <div className="flex items-center gap-3">
-
                             <LogoMark />
 
                             <div>
@@ -363,24 +360,18 @@ function Sidebar() {
                                     Admin Panel
                                 </p>
                             </div>
-
                         </div>
-
                     </div>
-
 
                     {/* NAVIGATION */}
 
                     <div className="p-3">
-
                         <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                             Management
                         </p>
 
                         <ul className="space-y-1">
-
                             {items.map((item) => {
-
                                 const isActive =
                                     item.path === "/admin"
                                         ? location.pathname === "/admin"
@@ -388,7 +379,6 @@ function Sidebar() {
 
                                 return (
                                     <li key={item.name}>
-
                                         <button
                                             type="button"
                                             onClick={() =>
@@ -400,7 +390,6 @@ function Sidebar() {
                                                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                                             }`}
                                         >
-
                                             <span
                                                 className={
                                                     isActive
@@ -414,21 +403,15 @@ function Sidebar() {
                                             <span>
                                                 {item.name}
                                             </span>
-
                                         </button>
-
                                     </li>
                                 );
-
                             })}
-
                         </ul>
-
 
                         {/* STORE */}
 
                         <div className="pt-4 mt-4 border-t border-slate-100">
-
                             <button
                                 type="button"
                                 onClick={() => navigate("/")}
@@ -439,28 +422,20 @@ function Sidebar() {
                                 <span>
                                     Back to Store
                                 </span>
-
                             </button>
-
                         </div>
-
                     </div>
-
                 </nav>
-
             </div>
-
         </aside>
     );
 }
-
 
 // =====================================================
 // USER AVATAR
 // =====================================================
 
 function UserAvatar({ name }) {
-
     const initial =
         name?.trim()?.charAt(0)?.toUpperCase() || "?";
 
@@ -471,13 +446,11 @@ function UserAvatar({ name }) {
     );
 }
 
-
 // =====================================================
 // ROLE BADGE
 // =====================================================
 
 function RoleBadge({ role }) {
-
     const normalizedRole =
         String(role || "USER").toUpperCase();
 
@@ -496,13 +469,11 @@ function RoleBadge({ role }) {
     );
 }
 
-
 // =====================================================
 // DASHBOARD
 // =====================================================
 
 export default function Dashboard() {
-
     const navigate = useNavigate();
 
     const users = useAdminStore(
@@ -529,13 +500,36 @@ export default function Dashboard() {
         (state) => state.fetchOrders
     );
 
+    // =================================================
+    // DELETE USER
+    // =================================================
+
+    const handleDelete = async (userId) => {
+        const confirmed = window.confirm(
+            "Are you sure you want to delete this user?"
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            await deleteUser(userId);
+
+            await fetchUsers();
+        } catch (error) {
+            console.error(
+                "Failed to delete user:",
+                error
+            );
+        }
+    };
 
     // =================================================
     // AUTHENTICATION
     // =================================================
 
     useEffect(() => {
-
         const token =
             localStorage.getItem("jwt_token");
 
@@ -545,7 +539,6 @@ export default function Dashboard() {
         }
 
         try {
-
             const payload = JSON.parse(
                 atob(token.split(".")[1])
             );
@@ -557,7 +550,6 @@ export default function Dashboard() {
                 !payload.exp ||
                 payload.exp < currentTime
             ) {
-
                 localStorage.removeItem(
                     "jwt_token"
                 );
@@ -566,9 +558,7 @@ export default function Dashboard() {
                     replace: true,
                 });
             }
-
         } catch {
-
             localStorage.removeItem(
                 "jwt_token"
             );
@@ -577,43 +567,34 @@ export default function Dashboard() {
                 replace: true,
             });
         }
-
     }, [navigate]);
-
 
     // =================================================
     // FETCH DATA
     // =================================================
 
     useEffect(() => {
-
         fetchUsers();
         fetchOrders();
-
     }, [fetchUsers, fetchOrders]);
-
 
     // =================================================
     // NORMALIZE ORDERS
     // =================================================
 
     const rawOrders = useMemo(() => {
-
         if (Array.isArray(orders)) {
             return orders;
         }
 
         return orders?.content || [];
-
     }, [orders]);
-
 
     // =================================================
     // DATE HELPERS
     // =================================================
 
     const getDate = (item) => {
-
         if (!item?.createdAt) {
             return null;
         }
@@ -628,7 +609,6 @@ export default function Dashboard() {
             : parsed;
     };
 
-
     // =================================================
     // PERCENTAGE CHANGE
     // =================================================
@@ -637,9 +617,7 @@ export default function Dashboard() {
         current,
         previous
     ) => {
-
         if (previous === 0) {
-
             if (current === 0) {
                 return 0;
             }
@@ -653,13 +631,11 @@ export default function Dashboard() {
         );
     };
 
-
     // =================================================
     // STATISTICS
     // =================================================
 
     const stats = useMemo(() => {
-
         const now = new Date();
 
         const todayStart = new Date(now);
@@ -686,27 +662,22 @@ export default function Dashboard() {
             previousWeekStart.getDate() - 7
         );
 
-
         // -----------------------------
         // USERS
         // -----------------------------
 
         const usersToday =
             users.filter((user) => {
-
                 const date = getDate(user);
 
                 return (
                     date &&
                     date >= todayStart
                 );
-
             }).length;
-
 
         const usersYesterday =
             users.filter((user) => {
-
                 const date = getDate(user);
 
                 return (
@@ -714,9 +685,7 @@ export default function Dashboard() {
                     date >= yesterdayStart &&
                     date < todayStart
                 );
-
             }).length;
-
 
         // -----------------------------
         // ORDERS
@@ -724,20 +693,16 @@ export default function Dashboard() {
 
         const ordersThisWeek =
             rawOrders.filter((order) => {
-
                 const date = getDate(order);
 
                 return (
                     date &&
                     date >= weekStart
                 );
-
             }).length;
-
 
         const ordersPreviousWeek =
             rawOrders.filter((order) => {
-
                 const date = getDate(order);
 
                 return (
@@ -745,16 +710,13 @@ export default function Dashboard() {
                     date >= previousWeekStart &&
                     date < weekStart
                 );
-
             }).length;
-
 
         // -----------------------------
         // ORDER TOTAL
         // -----------------------------
 
         const getOrderTotal = (order) => {
-
             if (!Array.isArray(order.products)) {
                 return 0;
             }
@@ -768,7 +730,6 @@ export default function Dashboard() {
             );
         };
 
-
         // -----------------------------
         // SALES
         // -----------------------------
@@ -776,7 +737,6 @@ export default function Dashboard() {
         const salesThisWeek =
             rawOrders
                 .filter((order) => {
-
                     const date =
                         getDate(order);
 
@@ -784,7 +744,6 @@ export default function Dashboard() {
                         date &&
                         date >= weekStart
                     );
-
                 })
                 .reduce(
                     (sum, order) =>
@@ -793,11 +752,9 @@ export default function Dashboard() {
                     0
                 );
 
-
         const salesPreviousWeek =
             rawOrders
                 .filter((order) => {
-
                     const date =
                         getDate(order);
 
@@ -806,7 +763,6 @@ export default function Dashboard() {
                         date >= previousWeekStart &&
                         date < weekStart
                     );
-
                 })
                 .reduce(
                     (sum, order) =>
@@ -814,7 +770,6 @@ export default function Dashboard() {
                         getOrderTotal(order),
                     0
                 );
-
 
         // -----------------------------
         // PENDING
@@ -828,7 +783,6 @@ export default function Dashboard() {
                     "PENDING"
             ).length;
 
-
         // -----------------------------
         // TOTAL SALES
         // -----------------------------
@@ -841,9 +795,7 @@ export default function Dashboard() {
                 0
             );
 
-
         return {
-
             users: users.length,
 
             orders: rawOrders.length,
@@ -869,11 +821,8 @@ export default function Dashboard() {
                     salesThisWeek,
                     salesPreviousWeek
                 ),
-
         };
-
     }, [users, rawOrders]);
-
 
     // =================================================
     // STATIC CHART
@@ -896,7 +845,6 @@ export default function Dashboard() {
             },
 
             scales: {
-
                 x: {
                     grid: {
                         display: false,
@@ -916,7 +864,6 @@ export default function Dashboard() {
                         color: "#94a3b8",
                     },
                 },
-
             },
 
             interaction: {
@@ -924,15 +871,12 @@ export default function Dashboard() {
                 axis: "x",
                 intersect: false,
             },
-
         }),
         []
     );
 
-
     const chartData = useMemo(
         () => ({
-
             labels: [
                 "5k",
                 "10k",
@@ -966,7 +910,6 @@ export default function Dashboard() {
                     borderColor: "#2563EB",
 
                     backgroundColor: (context) => {
-
                         const ctx =
                             context.chart.ctx;
 
@@ -1005,29 +948,24 @@ export default function Dashboard() {
                     pointBorderWidth: 0,
                 },
             ],
-
         }),
         []
     );
-
 
     // =================================================
     // UI
     // =================================================
 
     return (
-
         <div className="min-h-screen bg-slate-50">
 
             <div className="max-w-[1200px] mx-auto p-6">
-
 
                 {/* HEADER */}
 
                 <header className="mb-6 flex items-center justify-between gap-4 bg-white rounded-xl shadow-sm border border-slate-100 px-6 py-4">
 
                     <div>
-
                         <h1 className="text-xl font-semibold text-slate-900">
                             Dashboard
                         </h1>
@@ -1035,9 +973,7 @@ export default function Dashboard() {
                         <p className="text-sm text-slate-500 mt-0.5">
                             Overview of recent activity
                         </p>
-
                     </div>
-
 
                     <button
                         type="button"
@@ -1048,7 +984,6 @@ export default function Dashboard() {
                         }
                         className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm transition hover:bg-slate-50"
                     >
-
                         <span className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
                             <ProfileIcon />
                         </span>
@@ -1056,19 +991,14 @@ export default function Dashboard() {
                         <span className="text-sm font-medium text-slate-900 pr-1">
                             Profile
                         </span>
-
                     </button>
-
                 </header>
-
 
                 <div className="flex gap-6">
 
                     <Sidebar />
 
-
                     <main className="flex-1 min-w-0">
-
 
                         {/* STATS */}
 
@@ -1090,7 +1020,6 @@ export default function Dashboard() {
                                 }
                             />
 
-
                             <StatCard
                                 title="Total Orders"
                                 value={stats.orders.toLocaleString()}
@@ -1106,7 +1035,6 @@ export default function Dashboard() {
                                     />
                                 }
                             />
-
 
                             <StatCard
                                 title="Total Sales"
@@ -1144,7 +1072,6 @@ export default function Dashboard() {
                                 }
                             />
 
-
                             <StatCard
                                 title="Pending Orders"
                                 value={stats.pending.toLocaleString()}
@@ -1171,18 +1098,15 @@ export default function Dashboard() {
 
                         </section>
 
-
                         {/* USERS */}
 
                         <section className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden mb-6">
-
 
                             {/* USERS HEADER */}
 
                             <div className="px-6 py-5 flex items-center justify-between border-b border-slate-100">
 
                                 <div>
-
                                     <h2 className="text-lg font-semibold text-slate-900">
                                         Users
                                     </h2>
@@ -1190,9 +1114,7 @@ export default function Dashboard() {
                                     <p className="text-sm text-slate-500 mt-0.5">
                                         Recently registered users
                                     </p>
-
                                 </div>
-
 
                                 <span className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium">
                                     {users.length} total
@@ -1200,44 +1122,30 @@ export default function Dashboard() {
 
                             </div>
 
-
                             {loadingUsers && (
-
                                 <div className="px-6 py-10 text-center">
-
                                     <p className="text-sm text-slate-500">
                                         Loading users...
                                     </p>
-
                                 </div>
-
                             )}
 
-
                             {!loadingUsers && error && (
-
                                 <div className="px-6 py-10 text-center">
-
                                     <p className="text-sm text-red-500">
                                         Error: {error}
                                     </p>
-
                                 </div>
-
                             )}
 
-
                             {!loadingUsers && !error && (
-
                                 <div className="overflow-x-auto">
 
                                     <table className="w-full">
 
-
                                         {/* TABLE HEADER */}
 
                                         <thead>
-
                                             <tr className="bg-slate-50/70 text-xs uppercase tracking-wide text-slate-400">
 
                                                 <th className="px-6 py-3 text-left font-medium">
@@ -1252,23 +1160,23 @@ export default function Dashboard() {
                                                     Role
                                                 </th>
 
+                                                <th className="px-6 py-3 text-right font-medium">
+                                                    Actions
+                                                </th>
+
                                             </tr>
-
                                         </thead>
-
 
                                         {/* TABLE BODY */}
 
                                         <tbody>
 
                                             {users.length > 0 ? (
-
                                                 users.map(
                                                     (
                                                         user,
                                                         index
                                                     ) => (
-
                                                         <tr
                                                             key={
                                                                 user.id ||
@@ -1302,7 +1210,6 @@ export default function Dashboard() {
 
                                                             </td>
 
-
                                                             {/* EMAIL */}
 
                                                             <td className="px-6 py-4">
@@ -1313,7 +1220,6 @@ export default function Dashboard() {
                                                                 </span>
 
                                                             </td>
-
 
                                                             {/* ROLE */}
 
@@ -1327,24 +1233,41 @@ export default function Dashboard() {
 
                                                             </td>
 
-                                                        </tr>
+                                                            {/* ACTIONS */}
 
+                                                            <td className="px-6 py-4 text-right">
+
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleDelete(
+                                                                            user.id
+                                                                        )
+                                                                    }
+                                                                    title="Delete user"
+                                                                    aria-label={`Delete ${
+                                                                        user.username ||
+                                                                        "user"
+                                                                    }`}
+                                                                    className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                                                >
+                                                                    <TrashIcon />
+                                                                </button>
+
+                                                            </td>
+
+                                                        </tr>
                                                     )
                                                 )
-
                                             ) : (
-
                                                 <tr>
-
                                                     <td
                                                         className="px-6 py-10 text-center text-sm text-slate-500"
-                                                        colSpan={3}
+                                                        colSpan={4}
                                                     >
                                                         No users found.
                                                     </td>
-
                                                 </tr>
-
                                             )}
 
                                         </tbody>
@@ -1352,21 +1275,17 @@ export default function Dashboard() {
                                     </table>
 
                                 </div>
-
                             )}
 
                         </section>
-
 
                         {/* SALES CHART */}
 
                         <section className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
 
-
                             <div className="flex items-center justify-between mb-5">
 
                                 <div>
-
                                     <h2 className="text-lg font-semibold text-slate-900">
                                         Sales Details
                                     </h2>
@@ -1374,15 +1293,12 @@ export default function Dashboard() {
                                     <p className="text-sm text-slate-500 mt-0.5">
                                         Sales performance overview
                                     </p>
-
                                 </div>
-
 
                                 <select
                                     disabled
                                     className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
                                 >
-
                                     <option>
                                         October
                                     </option>
@@ -1390,11 +1306,9 @@ export default function Dashboard() {
                                     <option>
                                         November
                                     </option>
-
                                 </select>
 
                             </div>
-
 
                             <div className="w-full h-56 rounded-lg p-2">
 

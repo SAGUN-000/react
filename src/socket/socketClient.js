@@ -1,5 +1,4 @@
- 
-import { Client } from "@stomp/stompjs";
+ import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
 
@@ -10,20 +9,17 @@ const socketClient = new Client({
 
     reconnectDelay: 5000,
 
-
     onConnect: () => {
 
         console.log("WebSocket connected");
 
     },
 
-
     onDisconnect: () => {
 
         console.log("WebSocket disconnected");
 
     },
-
 
     onStompError: (frame) => {
 
@@ -48,12 +44,36 @@ const connect = () => {
     /*
      * Already connected
      */
-
     if (socketClient.connected) {
 
         return Promise.resolve();
 
     }
+
+
+    /*
+     * Get JWT
+     */
+    const token =
+        localStorage.getItem("jwt_token");
+
+    if (!token) {
+
+        return Promise.reject(
+            new Error("No JWT token found")
+        );
+
+    }
+
+
+    /*
+     * Send JWT during STOMP CONNECT
+     */
+    socketClient.connectHeaders = {
+
+        Authorization: `Bearer ${token}`
+
+    };
 
 
     return new Promise((resolve, reject) => {
@@ -72,7 +92,6 @@ const connect = () => {
             /*
              * Restore handlers after connection.
              */
-
             socketClient.onConnect =
                 previousOnConnect;
 
@@ -196,4 +215,3 @@ export {
     sendMessage,
     subscribeToMessages
 };
- 

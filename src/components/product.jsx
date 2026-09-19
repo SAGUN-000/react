@@ -1,24 +1,39 @@
  import { NavLink, useNavigate } from "react-router-dom";
+ import useMessageBoxStore from "../store/MessageBoxStore";
 
 function Products({ id, name, price, url, addToCart }) {
   const navigate = useNavigate();
+  const { showMessage } = useMessageBoxStore();
 
   const handleAddToCart = async () => {
     try {
-      await addToCart({ id, name, price, url });
-      alert("Added to cart");
+        await addToCart({ id, name, price, url });
+
+        showMessage("Added to cart successfully!", "success");
+
     } catch (err) {
-      if (err.message === "AUTH_REQUIRED") {
-        alert("Please login to add items to cart");
-        navigate("/login");
-      } else if (err.message === "UNAUTHORIZED") {
-        alert("Login expired");
-        navigate("/login");
-      } else {
-        alert("Failed to add item");
-      }
+        if (err.message === "AUTH_REQUIRED") {
+            showMessage(
+                "Please login to add items to cart.",
+                "warning"
+            );
+            navigate("/login");
+
+        } else if (err.message === "UNAUTHORIZED") {
+            showMessage(
+                "Your login session has expired. Please login again.",
+                "warning"
+            );
+            navigate("/login");
+
+        } else {
+            showMessage(
+                "Failed to add item to cart.",
+                "error"
+            );
+        }
     }
-  };
+};
 
   return (
     <div

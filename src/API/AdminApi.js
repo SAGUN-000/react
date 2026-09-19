@@ -141,7 +141,25 @@ const updatePassword = async (oldPass, newPass) => {
   return res.data;
 };
 
+const deleteUser=async(userId)=>{
+
+const token = localStorage.getItem("jwt_token");
+
+  if (!token) {
+    throw new Error("User is not logged in");
+  }
+
+  const res =await axios.delete(`http://localhost:8080/admin/delete_user/${userId}`,{
+     headers: {
+        Authorization: `Bearer ${token}`,
+      }
+  })
+
+  return res.data;
+
+}
+
  
 
-export { getUserPurchase,getUsers,getAllOrders,updateOrderStatus,getAllUsersWithChats,getProfile,updatePassword};
+export { getUserPurchase,getUsers,getAllOrders,updateOrderStatus,getAllUsersWithChats,getProfile,updatePassword,deleteUser};
  

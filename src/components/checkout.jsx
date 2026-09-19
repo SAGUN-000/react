@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useOutletContext } from "react-router-dom"
  import LocationPicker from "./locationPicker.jsx";
+ import useMessageBoxStore from "../store/MessageBoxStore.js";
 
 const NEPAL_PROVINCES = [
   "Koshi Province",
@@ -43,6 +44,7 @@ export default function Checkout(){
      const [paymentMethod, setPaymentMethod] = useState('card')
      const [isProcessing, setIsProcessing] = useState(false)
      const [location, setLocation] = useState(null);
+     const { showMessage } = useMessageBoxStore();
    
 
      useEffect(() => {
@@ -87,43 +89,61 @@ export default function Checkout(){
        }))
      }
 
-     const handleSubmit = async (e) => {
-       e.preventDefault()
-       setIsProcessing(true)
+      const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsProcessing(true);
 
-       if (!location) {
-        alert("Please select your delivery location on the map.");
+    if (!location) {
+        showMessage(
+            "Please select your delivery location on the map.",
+            "warning"
+        );
         setIsProcessing(false);
         return;
-      }
+    }
 
-       try {
-           await placeOrder({
-           orderItems,
-           ...shippingInfo,
-          
-          latitude: location.latitude,
-          longitude: location.longitude,
-           
-      
-    });
-         const productIds = orderItems.map(item => item.id)
-         await deleteCartItem(productIds)
-         await fetchCartItems(navigate)
-         alert("Order placed successfully!")
-         navigate('/')
-       } catch (error) {
-         console.error("Checkout failed:", error)
-         if (error.message === "UNAUTHORIZED") {
-           alert("Login expired. Please log in again.")
-           navigate('/login')
-         } else {
-           alert(error.response?.data?.message || "Checkout failed. Please try again.")
-         }
-       } finally {
-         setIsProcessing(false)
-       }
-     }
+    try {
+        await placeOrder({
+            orderItems,
+            ...shippingInfo,
+            latitude: location.latitude,
+            longitude: location.longitude,
+        });
+
+        const productIds = orderItems.map(item => item.id);
+
+        await deleteCartItem(productIds);
+        await fetchCartItems(navigate);
+
+        showMessage(
+            "Order placed successfully!",
+            "success"
+        );
+
+        navigate("/");
+
+    } catch (error) {
+        console.error("Checkout failed:", error);
+
+        if (error.message === "UNAUTHORIZED") {
+            showMessage(
+                "Login expired. Please log in again.",
+                "warning"
+            );
+
+            navigate("/login");
+        } else {
+            showMessage(
+                error.response?.data?.message ||
+                "Checkout failed. Please try again.",
+                "error"
+            );
+        }
+
+    } finally {
+        setIsProcessing(false);
+    }
+};
 
      const total = Number(orderSubtotal) || 0
 
